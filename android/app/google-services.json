@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "621708089115",
+    "project_id": "dtaxrail-d838e",
+    "storage_bucket": "dtaxrail-d838e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:621708089115:android:f4b449b988cbbcc809e5be",
+        "android_client_info": {
+          "package_name": "com.taxeasy.itr.itr_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCb9gD3YrQCAWRhwXOSgIKLje5n9z-u5T0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
