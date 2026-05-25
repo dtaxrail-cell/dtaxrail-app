@@ -358,57 +358,6 @@ class _WelcomeScreenState
                           ),
                         ),
 
-                        const SizedBox(height: 12),
-
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-
-                          child: OutlinedButton(
-                            onPressed: () {
-
-                              Navigator.push(
-                                context,
-
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                  const BiometricScreen(),
-                                ),
-                              );
-                            },
-
-                            style: OutlinedButton
-                                .styleFrom(
-                              side: const BorderSide(
-                                color:
-                                AppColors.primary,
-                                width: 1.5,
-                              ),
-
-                              shape:
-                              RoundedRectangleBorder(
-                                borderRadius:
-                                BorderRadius
-                                    .circular(14),
-                              ),
-                            ),
-
-                            child: const Text(
-                              'Already have an account? Sign In',
-
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight:
-                                FontWeight.w600,
-                                fontFamily:
-                                'Poppins',
-                                color:
-                                AppColors.primary,
-                              ),
-                            ),
-                          ),
-                        ),
-
                         const SizedBox(height: 28),
                       ],
                     ),

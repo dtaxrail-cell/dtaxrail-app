@@ -6,6 +6,7 @@ import '../services/local_storage_service.dart';
 import '../services/google_auth_service.dart';
 
 import 'main_navigation_screen.dart';
+import 'biometric_Screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -32,6 +33,18 @@ class _AuthScreenState
       await GoogleAuthService
           .signInWithGoogle();
 
+      if (userCredential != null) {
+
+        final idToken =
+        await userCredential.user!
+            .getIdToken();
+
+        await GoogleAuthService
+            .syncCustomerToBackend(
+          idToken!,
+        );
+      }
+
       if (userCredential == null) {
 
         setState(() {
@@ -55,7 +68,7 @@ class _AuthScreenState
 
         MaterialPageRoute(
           builder: (_) =>
-          const MainNavigationScreen(),
+          const BiometricScreen(),
         ),
 
             (route) => false,

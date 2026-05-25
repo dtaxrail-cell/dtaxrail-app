@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dio/dio.dart';
 
 import '../theme/app_theme.dart';
+import '../services/google_auth_service.dart';
 
 import 'main_navigation_screen.dart';
 import 'auth_screen.dart';
-
+import 'complete_profile_screen.dart';
 class BiometricScreen extends StatefulWidget {
 
   const BiometricScreen({super.key});
@@ -23,6 +26,21 @@ class _BiometricScreenState
 
   bool loading = false;
 
+  @override
+  void initState() {
+
+    super.initState();
+
+    Future.delayed(
+      const Duration(milliseconds: 500),
+
+          () {
+
+        authenticate();
+      },
+    );
+  }
+
   Future<void> authenticate() async {
 
     try {
@@ -31,27 +49,113 @@ class _BiometricScreenState
         loading = true;
       });
 
+      final bool canAuthenticate =
+      await auth.canCheckBiometrics;
+
+      final bool isDeviceSupported =
+      await auth.isDeviceSupported();
+
+      if (
+      !canAuthenticate ||
+          !isDeviceSupported
+      ) {
+
+        print(
+          "Biometric not supported",
+        );
+
+        return;
+      }
+
       bool authenticated =
       await auth.authenticate(
+
         localizedReason:
         'Authenticate to access D Tax Rail',
 
         options: const AuthenticationOptions(
+
           biometricOnly: true,
+
           stickyAuth: true,
         ),
       );
 
       if (authenticated && mounted) {
 
-        Navigator.pushReplacement(
-          context,
+        // GET FIREBASE TOKEN
+        final token =
+        await FirebaseAuth
+            .instance
+            .currentUser!
+            .getIdToken();
 
-          MaterialPageRoute(
-            builder: (_) =>
-            const MainNavigationScreen(),
+        // UPDATE BIOMETRIC STATUS IN BACKEND
+        await Dio().post(
+
+          'http://10.79.198.214:5000/auth/enable-biometric',
+
+          options: Options(
+            headers: {
+              'Authorization':
+              'Bearer $token',
+            },
           ),
         );
+
+        print(
+          "Biometric enabled in DB",
+        );
+
+        // CHECK CUSTOMER PROFILE
+        final response = await Dio().get(
+
+          'http://10.79.198.214:5000/customers/me',
+
+          options: Options(
+
+            headers: {
+              'Authorization':
+              'Bearer $token',
+            },
+          ),
+        );
+
+        final customer =
+        response.data['customer'];
+
+        final phone =
+        customer['phone'];
+
+        if (!mounted) return;
+
+        if (
+        phone == null ||
+            phone.toString().isEmpty
+        ) {
+
+          Navigator.pushReplacement(
+
+            context,
+
+            MaterialPageRoute(
+              builder: (_) =>
+              const CompleteProfileScreen(),
+            ),
+          );
+
+        } else {
+
+          Navigator.pushReplacement(
+
+            context,
+
+            MaterialPageRoute(
+              builder: (_) =>
+              const MainNavigationScreen(),
+            ),
+          );
+        }
       }
 
     } catch (e) {
@@ -60,9 +164,30 @@ class _BiometricScreenState
 
     } finally {
 
-      setState(() {
-        loading = false;
-      });
+      if (mounted) {
+
+        setState(() {
+          loading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> useAnotherAccount() async {
+
+    await GoogleAuthService.logout();
+
+    if (mounted) {
+
+      Navigator.pushReplacement(
+
+        context,
+
+        MaterialPageRoute(
+          builder: (_) =>
+          const AuthScreen(),
+        ),
+      );
     }
   }
 
@@ -70,15 +195,21 @@ class _BiometricScreenState
   Widget build(BuildContext context) {
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+
+      backgroundColor:
+      AppColors.background,
 
       body: SafeArea(
+
         child: Padding(
-          padding: const EdgeInsets.symmetric(
+
+          padding:
+          const EdgeInsets.symmetric(
             horizontal: 28,
           ),
 
           child: Column(
+
             crossAxisAlignment:
             CrossAxisAlignment.center,
 
@@ -87,14 +218,21 @@ class _BiometricScreenState
               const Spacer(),
 
               Center(
+
                 child: Container(
+
                   width: 96,
                   height: 96,
 
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
+
+                    gradient:
+                    const LinearGradient(
+
                       colors: [
+
                         AppColors.primary,
+
                         AppColors.primaryDark,
                       ],
                     ),
@@ -105,19 +243,25 @@ class _BiometricScreenState
                     boxShadow: [
 
                       BoxShadow(
-                        color: AppColors.primary
+
+                        color:
+                        AppColors.primary
                             .withOpacity(0.20),
 
                         blurRadius: 20,
 
-                        offset: const Offset(0, 8),
+                        offset:
+                        const Offset(0, 8),
                       ),
                     ],
                   ),
 
                   child: const Icon(
+
                     Icons.fingerprint_rounded,
+
                     color: Colors.white,
+
                     size: 50,
                   ),
                 ),
@@ -126,15 +270,23 @@ class _BiometricScreenState
               const SizedBox(height: 34),
 
               const Center(
+
                 child: Text(
+
                   "Welcome Back",
 
-                  textAlign: TextAlign.center,
+                  textAlign:
+                  TextAlign.center,
 
                   style: TextStyle(
+
                     fontSize: 34,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textDark,
+
+                    fontWeight:
+                    FontWeight.w700,
+
+                    color:
+                    AppColors.textDark,
                   ),
                 ),
               ),
@@ -142,14 +294,21 @@ class _BiometricScreenState
               const SizedBox(height: 12),
 
               const Center(
-                child: Text(
-                  "Use biometrics to continue securely",
 
-                  textAlign: TextAlign.center,
+                child: Text(
+
+                  "Verifying your identity securely using biometrics.",
+
+                  textAlign:
+                  TextAlign.center,
 
                   style: TextStyle(
+
                     fontSize: 15,
-                    color: AppColors.textMid,
+
+                    color:
+                    AppColors.textMid,
+
                     height: 1.5,
                   ),
                 ),
@@ -157,88 +316,69 @@ class _BiometricScreenState
 
               const SizedBox(height: 60),
 
-              Center(
-                child: GestureDetector(
-                  onTap: loading
-                      ? null
-                      : authenticate,
+              Container(
 
-                  child: AnimatedContainer(
-                    duration:
-                    const Duration(milliseconds: 250),
+                width: 120,
+                height: 120,
 
-                    width: 150,
-                    height: 150,
+                decoration: BoxDecoration(
 
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
+                  shape: BoxShape.circle,
+
+                  color:
+                  AppColors.primaryLight,
+
+                  boxShadow: [
+
+                    BoxShadow(
 
                       color:
-                      AppColors.primaryLight,
+                      AppColors.primary
+                          .withOpacity(0.10),
 
-                      border: Border.all(
-                        color:
-                        AppColors.primary,
-                        width: 2,
-                      ),
+                      blurRadius: 20,
 
-                      boxShadow: [
-
-                        BoxShadow(
-                          color: AppColors.primary
-                              .withOpacity(0.10),
-
-                          blurRadius: 20,
-
-                          offset:
-                          const Offset(0, 8),
-                        ),
-                      ],
+                      offset:
+                      const Offset(0, 8),
                     ),
+                  ],
+                ),
 
-                    child: loading
-                        ? const Center(
-                      child:
-                      CircularProgressIndicator(),
-                    )
-                        : const Icon(
-                      Icons
-                          .fingerprint_rounded,
-                      size: 70,
-                      color:
-                      AppColors.primary,
-                    ),
-                  ),
+                child: loading
+
+                    ? const Center(
+                  child:
+                  CircularProgressIndicator(),
+                )
+
+                    : const Icon(
+
+                  Icons
+                      .fingerprint_rounded,
+
+                  size: 60,
+
+                  color:
+                  AppColors.primary,
                 ),
               ),
 
-              const SizedBox(height: 26),
-
-              const Center(
-                child: Text(
-                  "Tap to authenticate",
-
-                  textAlign: TextAlign.center,
-
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
               Center(
+
                 child: Container(
+
                   padding:
                   const EdgeInsets.symmetric(
+
                     horizontal: 16,
+
                     vertical: 11,
                   ),
 
                   decoration: BoxDecoration(
+
                     color:
                     AppColors.accentLight,
 
@@ -249,27 +389,34 @@ class _BiometricScreenState
                   ),
 
                   child: Row(
+
                     mainAxisSize:
                     MainAxisSize.min,
 
                     children: const [
 
                       Icon(
+
                         Icons
                             .verified_user_rounded,
+
                         color:
                         AppColors.accent,
+
                         size: 18,
                       ),
 
                       SizedBox(width: 8),
 
                       Text(
+
                         "This device is trusted",
 
                         style: TextStyle(
+
                           color:
                           AppColors.accent,
+
                           fontWeight:
                           FontWeight.w600,
                         ),
@@ -282,24 +429,19 @@ class _BiometricScreenState
               const Spacer(),
 
               TextButton(
-                onPressed: () {
 
-                  Navigator.pushReplacement(
-                    context,
-
-                    MaterialPageRoute(
-                      builder: (_) =>
-                      const AuthScreen(),
-                    ),
-                  );
-                },
+                onPressed: useAnotherAccount,
 
                 child: const Text(
-                  "Use OTP instead",
+
+                  "Use another account",
 
                   style: TextStyle(
+
                     fontSize: 15,
-                    fontWeight: FontWeight.w600,
+
+                    fontWeight:
+                    FontWeight.w600,
                   ),
                 ),
               ),
