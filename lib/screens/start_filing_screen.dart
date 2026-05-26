@@ -251,6 +251,16 @@ class _StartFilingScreenState
 
         notes: _notesCtrl.text,
 
+        memberName: _nameCtrl.text,
+
+        memberPan: _panCtrl.text,
+
+        memberPhone: _phoneCtrl.text,
+
+        memberEmail: _emailCtrl.text,
+
+        relationship: "Self",
+
       );
 
 
