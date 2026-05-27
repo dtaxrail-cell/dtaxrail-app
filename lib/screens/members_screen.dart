@@ -73,8 +73,6 @@ class _MembersScreenState
 
       context: context,
 
-      barrierDismissible: !isSaving,
-
       builder: (_) {
 
         return StatefulBuilder(
@@ -94,8 +92,11 @@ class _MembersScreenState
                 "Add Member",
 
                 style: TextStyle(
+
                   fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w700,
+
+                  fontWeight:
+                  FontWeight.w700,
                 ),
               ),
 
@@ -103,90 +104,49 @@ class _MembersScreenState
 
                 child: Column(
 
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisSize:
+                  MainAxisSize.min,
 
                   children: [
 
-                    TextField(
-
+                    _buildField(
                       controller: nameCtrl,
-
-                      enabled: !isSaving,
-
-                      decoration:
-                      const InputDecoration(
-                        labelText: "Full Name",
-                      ),
+                      label: "Full Name",
                     ),
 
                     const SizedBox(height: 14),
 
-                    TextField(
-
+                    _buildField(
                       controller: panCtrl,
-
-                      enabled: !isSaving,
-
-                      decoration:
-                      const InputDecoration(
-                        labelText: "PAN Number",
-                      ),
+                      label: "PAN Number",
                     ),
 
                     const SizedBox(height: 14),
 
-                    TextField(
-
+                    _buildField(
                       controller: phoneCtrl,
-
-                      enabled: !isSaving,
-
-                      decoration:
-                      const InputDecoration(
-                        labelText: "Phone Number",
-                      ),
+                      label: "Phone Number",
                     ),
 
                     const SizedBox(height: 14),
 
-                    TextField(
-
+                    _buildField(
                       controller: emailCtrl,
-
-                      enabled: !isSaving,
-
-                      decoration:
-                      const InputDecoration(
-                        labelText: "Email Address",
-                      ),
+                      label: "Email Address",
                     ),
 
                     const SizedBox(height: 14),
 
-                    TextField(
-
+                    _buildField(
                       controller: dobCtrl,
-
-                      enabled: !isSaving,
-
-                      decoration:
-                      const InputDecoration(
-                        labelText: "Date of Birth",
-                      ),
+                      label: "Date of Birth",
                     ),
 
                     const SizedBox(height: 14),
 
-                    TextField(
-
+                    _buildField(
                       controller: relationCtrl,
-
-                      enabled: !isSaving,
-
-                      decoration:
-                      const InputDecoration(
-                        labelText: "Relationship",
-                      ),
+                      label: "Relationship",
                     ),
                   ],
                 ),
@@ -196,14 +156,14 @@ class _MembersScreenState
 
                 TextButton(
 
-                  onPressed: isSaving
-                      ? null
-                      : () {
+                  onPressed: () {
 
                     Navigator.pop(context);
                   },
 
-                  child: const Text("Cancel"),
+                  child: const Text(
+                    "Cancel",
+                  ),
                 ),
 
                 ElevatedButton(
@@ -212,7 +172,11 @@ class _MembersScreenState
                       ? null
                       : () async {
 
-                    if (nameCtrl.text.trim().isEmpty) {
+                    if (
+                    nameCtrl.text
+                        .trim()
+                        .isEmpty
+                    ) {
                       return;
                     }
 
@@ -221,7 +185,8 @@ class _MembersScreenState
                     });
 
                     final response =
-                    await MemberService.createMember(
+                    await MemberService
+                        .createMember(
 
                       fullName:
                       nameCtrl.text.trim(),
@@ -256,26 +221,14 @@ class _MembersScreenState
 
                       if (!mounted) return;
 
-                      ScaffoldMessenger.of(context)
+                      ScaffoldMessenger.of(
+                          context)
                           .showSnackBar(
 
                         const SnackBar(
 
                           content: Text(
                             "Member added successfully",
-                          ),
-                        ),
-                      );
-
-                    } else {
-
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(
-
-                        const SnackBar(
-
-                          content: Text(
-                            "Failed to add member",
                           ),
                         ),
                       );
@@ -286,10 +239,11 @@ class _MembersScreenState
 
                       ? const SizedBox(
 
-                    height: 18,
                     width: 18,
+                    height: 18,
 
-                    child: CircularProgressIndicator(
+                    child:
+                    CircularProgressIndicator(
                       strokeWidth: 2,
                       color: Colors.white,
                     ),
@@ -304,6 +258,471 @@ class _MembersScreenState
           },
         );
       },
+    );
+  }
+
+  void _showOperationsBottomSheet() {
+
+    showModalBottomSheet(
+
+      context: context,
+
+      backgroundColor: Colors.white,
+
+      shape: const RoundedRectangleBorder(
+
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
+      ),
+
+      builder: (_) {
+
+        return Padding(
+
+          padding: const EdgeInsets.all(20),
+
+          child: Column(
+
+            mainAxisSize:
+            MainAxisSize.min,
+
+            children: [
+
+              Container(
+
+                width: 40,
+                height: 5,
+
+                decoration: BoxDecoration(
+
+                  color: Colors.grey.shade300,
+
+                  borderRadius:
+                  BorderRadius.circular(20),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              ListTile(
+
+                leading: const Icon(
+                  Icons.edit_rounded,
+                ),
+
+                title: const Text(
+                  "Edit Member",
+                ),
+
+                onTap: () {
+
+                  Navigator.pop(context);
+
+                  _showMemberSelector(
+                    isDelete: false,
+                  );
+                },
+              ),
+
+              ListTile(
+
+                leading: const Icon(
+
+                  Icons.delete_rounded,
+
+                  color: Colors.red,
+                ),
+
+                title: const Text(
+
+                  "Delete Member",
+
+                  style: TextStyle(
+                    color: Colors.red,
+                  ),
+                ),
+
+                onTap: () {
+
+                  Navigator.pop(context);
+
+                  _showMemberSelector(
+                    isDelete: true,
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showMemberSelector({
+    required bool isDelete,
+  }) {
+
+    showModalBottomSheet(
+
+      context: context,
+
+      builder: (_) {
+
+        return ListView.builder(
+
+          shrinkWrap: true,
+
+          itemCount:
+          _members.length,
+
+          itemBuilder:
+              (context, index) {
+
+            final member =
+            _members[index];
+
+            return ListTile(
+
+              leading: CircleAvatar(
+
+                child: Text(
+
+                  member["full_name"][0]
+                      .toUpperCase(),
+                ),
+              ),
+
+              title: Text(
+                member["full_name"],
+              ),
+
+              subtitle: Text(
+                member["relationship"] ?? "",
+              ),
+
+              onTap: () {
+
+                Navigator.pop(context);
+
+                if (isDelete) {
+
+                  _deleteMember(member);
+
+                } else {
+
+                  _showEditMemberDialog(
+                    member,
+                  );
+                }
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showEditMemberDialog(
+      dynamic member,
+      ) async {
+
+    final nameCtrl =
+    TextEditingController(
+      text: member["full_name"],
+    );
+
+    final panCtrl =
+    TextEditingController(
+      text: member["pan_number"],
+    );
+
+    final phoneCtrl =
+    TextEditingController(
+      text: member["phone"],
+    );
+
+    final emailCtrl =
+    TextEditingController(
+      text: member["email"],
+    );
+
+    final dobCtrl =
+    TextEditingController(
+      text: member["date_of_birth"],
+    );
+
+    final relationCtrl =
+    TextEditingController(
+      text: member["relationship"],
+    );
+
+    bool isSaving = false;
+
+    showDialog(
+
+      context: context,
+
+      builder: (_) {
+
+        return StatefulBuilder(
+
+          builder: (context, setDialogState) {
+
+            return AlertDialog(
+
+              title: const Text(
+                "Edit Member",
+              ),
+
+              content:
+              SingleChildScrollView(
+
+                child: Column(
+
+                  mainAxisSize:
+                  MainAxisSize.min,
+
+                  children: [
+
+                    _buildField(
+                      controller: nameCtrl,
+                      label: "Full Name",
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _buildField(
+                      controller: panCtrl,
+                      label: "PAN Number",
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _buildField(
+                      controller: phoneCtrl,
+                      label: "Phone Number",
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _buildField(
+                      controller: emailCtrl,
+                      label: "Email",
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _buildField(
+                      controller: dobCtrl,
+                      label: "DOB",
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _buildField(
+                      controller: relationCtrl,
+                      label: "Relationship",
+                    ),
+                  ],
+                ),
+              ),
+
+              actions: [
+
+                TextButton(
+
+                  onPressed: () {
+
+                    Navigator.pop(context);
+                  },
+
+                  child: const Text(
+                    "Cancel",
+                  ),
+                ),
+
+                ElevatedButton(
+
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+
+                    setDialogState(() {
+                      isSaving = true;
+                    });
+
+                    final success =
+                    await MemberService
+                        .updateMember(
+
+                      memberId:
+                      member["id"]
+                          .toString(),
+
+                      fullName:
+                      nameCtrl.text,
+
+                      panNumber:
+                      panCtrl.text,
+
+                      phone:
+                      phoneCtrl.text,
+
+                      email:
+                      emailCtrl.text,
+
+                      relationship:
+                      relationCtrl.text,
+
+                      dateOfBirth:
+                      dobCtrl.text,
+                    );
+
+                    if (!mounted) return;
+
+                    setDialogState(() {
+                      isSaving = false;
+                    });
+
+                    if (success) {
+
+                      Navigator.pop(context);
+
+                      await _loadMembers();
+
+                      ScaffoldMessenger.of(
+                          context)
+                          .showSnackBar(
+
+                        const SnackBar(
+
+                          content: Text(
+                            "Member updated successfully",
+                          ),
+                        ),
+                      );
+                    }
+                  },
+
+                  child: const Text(
+                    "Update",
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteMember(
+      dynamic member,
+      ) async {
+
+    final confirm =
+    await showDialog<bool>(
+
+      context: context,
+
+      builder: (_) {
+
+        return AlertDialog(
+
+          title: const Text(
+            "Delete Member",
+          ),
+
+          content: Text(
+
+            "Delete ${member["full_name"]} and all filings?",
+          ),
+
+          actions: [
+
+            TextButton(
+
+              onPressed: () {
+
+                Navigator.pop(
+                    context,
+                    false);
+              },
+
+              child: const Text(
+                "Cancel",
+              ),
+            ),
+
+            ElevatedButton(
+
+              style:
+              ElevatedButton.styleFrom(
+
+                backgroundColor:
+                Colors.red,
+              ),
+
+              onPressed: () {
+
+                Navigator.pop(
+                    context,
+                    true);
+              },
+
+              child: const Text(
+                "Delete",
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) {
+      return;
+    }
+
+    final success =
+    await MemberService.deleteMember(
+      member["id"].toString(),
+    );
+
+    if (success) {
+
+      await _loadMembers();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+
+        const SnackBar(
+
+          content: Text(
+            "Member deleted successfully",
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildField({
+
+    required TextEditingController controller,
+
+    required String label,
+
+  }) {
+
+    return TextField(
+
+      controller: controller,
+
+      decoration: InputDecoration(
+        labelText: label,
+      ),
     );
   }
 
@@ -337,30 +756,65 @@ class _MembersScreenState
         ),
       ),
 
-      floatingActionButton:
-      FloatingActionButton.extended(
+      floatingActionButton: Row(
 
-        backgroundColor:
-        AppColors.primary,
+        mainAxisAlignment:
+        MainAxisAlignment.end,
 
-        onPressed:
-        _showAddMemberDialog,
+        children: [
 
-        icon: const Icon(
-          Icons.add,
-          color: Colors.white,
-        ),
+          FloatingActionButton.extended(
 
-        label: const Text(
+            heroTag: "operations",
 
-          "Add Member",
+            backgroundColor:
+            Colors.black87,
 
-          style: TextStyle(
-            color: Colors.white,
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
+            onPressed:
+            _showOperationsBottomSheet,
+
+            icon: const Icon(
+              Icons.more_horiz_rounded,
+              color: Colors.white,
+            ),
+
+            label: const Text(
+
+              "Operations",
+
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
           ),
-        ),
+
+          const SizedBox(width: 12),
+
+          FloatingActionButton.extended(
+
+            heroTag: "add",
+
+            backgroundColor:
+            AppColors.primary,
+
+            onPressed:
+            _showAddMemberDialog,
+
+            icon: const Icon(
+              Icons.add,
+              color: Colors.white,
+            ),
+
+            label: const Text(
+
+              "Add Member",
+
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
       ),
 
       body: _isLoading
@@ -375,12 +829,7 @@ class _MembersScreenState
           ? const Center(
 
         child: Text(
-
           "No members found",
-
-          style: TextStyle(
-            fontFamily: 'Poppins',
-          ),
         ),
       )
 
@@ -443,9 +892,6 @@ class _MembersScreenState
 
                     fontWeight:
                     FontWeight.w700,
-
-                    fontFamily:
-                    'Poppins',
                   ),
                 ),
               ),
@@ -458,9 +904,6 @@ class _MembersScreenState
 
                   fontWeight:
                   FontWeight.w700,
-
-                  fontFamily:
-                  'Poppins',
                 ),
               ),
 
@@ -490,8 +933,6 @@ class _MembersScreenState
                   ],
                 ),
               ),
-
-
 
               onTap: () async {
 

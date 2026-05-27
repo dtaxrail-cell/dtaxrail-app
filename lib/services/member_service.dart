@@ -8,7 +8,17 @@ class MemberService {
 
   static final Dio _dio = Dio();
 
+  static Future<String?> _getToken() async {
 
+    final user =
+        FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return null;
+    }
+
+    return await user.getIdToken();
+  }
 
 
 
@@ -26,22 +36,12 @@ class MemberService {
 
     try {
 
-      final user =
-          FirebaseAuth.instance.currentUser;
+      final token =
+      await _getToken();
 
-      if (user == null) {
-
-        print("No logged in user");
-
+      if (token == null) {
         return null;
       }
-
-      final token =
-      await user.getIdToken();
-
-
-
-
 
       final response =
       await _dio.post(
@@ -62,37 +62,20 @@ class MemberService {
         options: Options(
 
           headers: {
-
-            "Authorization":
-            "Bearer $token",
-
+            "Authorization": "Bearer $token",
           },
         ),
       );
 
-      print(response.data);
-
       return response.data;
-
-    } on DioException catch (e) {
-
-      print("STATUS CODE: ${e.response?.statusCode}");
-      print("RESPONSE DATA: ${e.response?.data}");
-      print("ERROR MESSAGE: ${e.message}");
-
-      return null;
 
     } catch (e) {
 
-      print("Create Member Error: $e");
+      print(e);
 
       return null;
     }
   }
-
-
-
-
 
 
 
@@ -101,20 +84,12 @@ class MemberService {
 
     try {
 
-      final user =
-          FirebaseAuth.instance.currentUser;
+      final token =
+      await _getToken();
 
-      if (user == null) {
-
+      if (token == null) {
         return [];
       }
-
-      final token =
-      await user.getIdToken();
-
-
-
-
 
       final response =
       await _dio.get(
@@ -124,27 +99,113 @@ class MemberService {
         options: Options(
 
           headers: {
-
-            "Authorization":
-            "Bearer $token",
-
+            "Authorization": "Bearer $token",
           },
         ),
       );
-
-
-
-
-
-      print(response.data);
 
       return response.data["members"] ?? [];
 
     } catch (e) {
 
-      print("Get Members Error: $e");
+      print(e);
 
       return [];
+    }
+  }
+
+
+
+  // UPDATE MEMBER
+  static Future<bool> updateMember({
+
+    required String memberId,
+    required String fullName,
+    required String panNumber,
+    required String phone,
+    required String email,
+    required String relationship,
+    required String dateOfBirth,
+
+  }) async {
+
+    try {
+
+      final token =
+      await _getToken();
+
+      if (token == null) {
+        return false;
+      }
+
+      await _dio.put(
+
+        "$baseUrl/members/update/$memberId",
+
+        data: {
+
+          "full_name": fullName,
+          "pan_number": panNumber,
+          "phone": phone,
+          "email": email,
+          "relationship": relationship,
+          "date_of_birth": dateOfBirth,
+
+        },
+
+        options: Options(
+
+          headers: {
+            "Authorization": "Bearer $token",
+          },
+        ),
+      );
+
+      return true;
+
+    } catch (e) {
+
+      print(e);
+
+      return false;
+    }
+  }
+
+
+
+  // DELETE MEMBER
+  static Future<bool> deleteMember(
+      String memberId,
+      ) async {
+
+    try {
+
+      final token =
+      await _getToken();
+
+      if (token == null) {
+        return false;
+      }
+
+      await _dio.delete(
+
+        "$baseUrl/members/delete/$memberId",
+
+        options: Options(
+
+          headers: {
+            "Authorization": "Bearer $token",
+          },
+        ),
+      );
+
+      return true;
+
+    } catch (e) {
+
+      print(e);
+
+      return false;
     }
   }
 }
