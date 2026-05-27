@@ -8,17 +8,14 @@ class DocumentService {
 
   static final Dio _dio = Dio();
 
-
-
-
-
-  // DIRECT DOCUMENT UPLOAD
   static Future<Map<String, dynamic>?> uploadDocumentDirect({
 
     required String filingId,
     required String documentType,
     required String filePath,
     required String fileName,
+
+    ProgressCallback? onSendProgress,
 
   }) async {
 
@@ -37,10 +34,6 @@ class DocumentService {
       final token =
       await user.getIdToken();
 
-
-
-
-
       FormData formData =
       FormData.fromMap({
 
@@ -49,18 +42,12 @@ class DocumentService {
 
           filePath,
           filename: fileName,
-
         ),
 
         "filing_id": filingId,
 
         "document_type": documentType,
-
       });
-
-
-
-
 
       final response =
       await _dio.post(
@@ -69,13 +56,14 @@ class DocumentService {
 
         data: formData,
 
+        onSendProgress: onSendProgress,
+
         options: Options(
 
           headers: {
 
             "Authorization":
             "Bearer $token",
-
           },
         ),
       );

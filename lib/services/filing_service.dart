@@ -14,11 +14,7 @@ class FilingService {
     required String assessmentYear,
     required String notes,
 
-    required String memberName,
-    required String memberPan,
-    required String memberPhone,
-    required String memberEmail,
-    required String relationship,
+    required String memberId,
 
   }) async {
 
@@ -37,10 +33,6 @@ class FilingService {
       final token =
       await user.getIdToken();
 
-
-
-
-
       final response =
       await _dio.post(
 
@@ -52,26 +44,20 @@ class FilingService {
           "assessment_year": assessmentYear,
           "notes": notes,
 
-          "member_name": memberName,
-          "member_pan": memberPan,
-          "member_phone": memberPhone,
-          "member_email": memberEmail,
-          "relationship": relationship,
+          "member_id": memberId,
 
         },
 
         options: Options(
 
           headers: {
-            "Authorization": "Bearer $token",
+
+            "Authorization":
+            "Bearer $token",
+
           },
         ),
       );
-
-
-
-
-
 
       print(response.data);
 

@@ -1,61 +1,189 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../theme/app_theme.dart';
 import '../widgets/common_widgets.dart';
-import 'start_filing_screen.dart';
+
+import 'members_screen.dart';
 import 'my_returns_screen.dart';
 import 'need_help_screen.dart';
-
-class DashboardScreen extends StatelessWidget {
+import 'members_screen.dart';
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+
+  String userName = "User";
+
+  @override
+  void initState() {
+    super.initState();
+    loadUser();
+  }
+
+  void loadUser() {
+
+    final user =
+        FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+
+      setState(() {
+
+        userName =
+            user.displayName ??
+                user.email?.split("@").first ??
+                "User";
+
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+
+      backgroundColor:
+      AppColors.background,
+
       body: SafeArea(
+
         child: SingleChildScrollView(
+
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
+
             children: [
-              // ── Top bar ──────────────────────────────────────────────
+
+              // ── TOP BAR ─────────────────────────────────────────────
               Padding(
-                padding: const EdgeInsets.fromLTRB(22, 20, 22, 0),
+
+                padding:
+                const EdgeInsets.fromLTRB(
+                  22,
+                  20,
+                  22,
+                  0,
+                ),
+
                 child: Row(
+
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
+
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Hello, Priyanka',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textDark,
-                            fontFamily: 'Poppins',
+
+                    Expanded(
+
+                      child: Column(
+
+                        crossAxisAlignment:
+                        CrossAxisAlignment.start,
+
+                        children: [
+
+                          const Text(
+
+                            'Hello,',
+
+                            style: TextStyle(
+
+                              fontSize: 24,
+
+                              fontWeight:
+                              FontWeight.w800,
+
+                              color:
+                              AppColors.textDark,
+
+                              fontFamily:
+                              'Poppins',
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Welcome to DTR',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColors.textLight,
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w400,
+
+                          const SizedBox(height: 2),
+
+                          Text(
+
+                            userName,
+
+                            maxLines: 2,
+
+                            overflow:
+                            TextOverflow.ellipsis,
+
+                            style: const TextStyle(
+
+                              fontSize: 24,
+
+                              fontWeight:
+                              FontWeight.w800,
+
+                              color:
+                              AppColors.textDark,
+
+                              fontFamily:
+                              'Poppins',
+                            ),
                           ),
-                        ),
-                      ],
+
+                          const SizedBox(height: 4),
+
+                          Text(
+
+                            'Welcome to DTR',
+
+                            style: TextStyle(
+
+                              fontSize: 13,
+
+                              color:
+                              AppColors.textLight,
+
+                              fontFamily:
+                              'Poppins',
+
+                              fontWeight:
+                              FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const Spacer(),
+
+                    const SizedBox(width: 14),
+
                     CircleAvatar(
+
                       radius: 22,
-                      backgroundColor: AppColors.primaryLight,
-                      child: const Text(
-                        'P',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                          fontFamily: 'Poppins',
+
+                      backgroundColor:
+                      AppColors.primaryLight,
+
+                      child: Text(
+
+                        userName.isNotEmpty
+                            ? userName[0].toUpperCase()
+                            : 'U',
+
+                        style: const TextStyle(
+
+                          color:
+                          AppColors.primary,
+
+                          fontWeight:
+                          FontWeight.w700,
+
+                          fontFamily:
+                          'Poppins',
+
                           fontSize: 17,
                         ),
                       ),
@@ -66,156 +194,204 @@ class DashboardScreen extends StatelessWidget {
 
               const SizedBox(height: 22),
 
-              // ── Tax Filing Image Banner ───────────────────────────────
+              // ── TAX FILING BANNER ─────────────────────────────────
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 22),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Stack(
-                    children: [
-                      // Replace with Image.asset('assets/images/tax_filing.png')
-                      // once you add the image to assets
-                      Container(
-                        width: double.infinity,
-                        height: 180,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [
-                              Color(0xFFE8EFFF),
-                              Color(0xFFD0DCFF),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        child: Image.asset(
-                          'assets/images/tax_filing_banner.png',
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _BannerFallback(),
-                        ),
-                      ),
 
-                      // Overlay CTA
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.fromLTRB(18, 12, 18, 14),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                AppColors.primary.withOpacity(0.85),
-                              ],
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const Expanded(
-                                child: Text(
-                                  'File your ITR before July 31, 2025',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontFamily: 'Poppins',
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                              GestureDetector(
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) =>
-                                      const StartFilingScreen()),
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 7),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Text(
-                                    'Start Filing',
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontFamily: 'Poppins',
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                padding:
+                const EdgeInsets.symmetric(
+                  horizontal: 22,
+                ),
+
+                child: ClipRRect(
+
+                  borderRadius:
+                  BorderRadius.circular(20),
+
+                  child: Container(
+
+                    width: double.infinity,
+                    height: 180,
+
+                    decoration: BoxDecoration(
+
+                      borderRadius:
+                      BorderRadius.circular(20),
+
+                      boxShadow: [
+
+                        BoxShadow(
+
+                          color:
+                          AppColors.primary.withOpacity(0.10),
+
+                          blurRadius: 16,
+
+                          offset:
+                          const Offset(0, 6),
                         ),
+                      ],
+
+                      gradient:
+                      const LinearGradient(
+
+                        colors: [
+
+                          Color(0xFFE8EFFF),
+                          Color(0xFFD0DCFF),
+
+                        ],
+
+                        begin:
+                        Alignment.topLeft,
+
+                        end:
+                        Alignment.bottomRight,
                       ),
-                    ],
+                    ),
+
+                    child: Image.asset(
+
+                      'assets/images/tax_filing_banner.png',
+
+                      fit: BoxFit.cover,
+
+                      errorBuilder:
+                          (_, __, ___) =>
+                          _BannerFallback(),
+                    ),
                   ),
                 ),
               ),
 
               const SizedBox(height: 28),
 
-              // ── Section title ─────────────────────────────────────────
+              // ── SECTION TITLE ─────────────────────────────────────
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 22),
-                child: SectionTitle('What would you like to do?'),
+
+                padding:
+                EdgeInsets.symmetric(
+                  horizontal: 22,
+                ),
+
+                child: SectionTitle(
+                  'What would you like to do?',
+                ),
               ),
+
               const SizedBox(height: 16),
 
-              // ── 3 Cards ───────────────────────────────────────────────
+              // ── ACTION CARDS ──────────────────────────────────────
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 22),
+
+                padding:
+                const EdgeInsets.symmetric(
+                  horizontal: 22,
+                ),
+
                 child: Column(
+
                   children: [
-                    // Start Filing — full width
+
+                    // START FILING CARD
                     _WideCard(
-                      icon: Icons.edit_document,
-                      title: 'Start Filing',
+
+                      icon:
+                      Icons.edit_document,
+
+                      title:
+                      'Start Filing',
+
                       subtitle:
                       'File your income tax return with expert CA assistance',
-                      iconBg: AppColors.primaryLight,
-                      iconColor: AppColors.primary,
+
+                      iconBg:
+                      AppColors.primaryLight,
+
+                      iconColor:
+                      AppColors.primary,
+
                       onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const StartFilingScreen())),
+
+                        context,
+
+                        MaterialPageRoute(
+
+                          builder: (_) =>
+                          const MembersScreen(),
+                        ),
+                      ),
                     ),
+
                     const SizedBox(height: 14),
 
-                    // My Returns + Need Help — side by side
+                    // SECOND ROW
                     Row(
+
                       children: [
+
                         Expanded(
+
                           child: _HalfCard(
-                            icon: Icons.receipt_long_rounded,
-                            title: 'My Returns',
-                            subtitle: 'Track your filed returns',
-                            iconBg: AppColors.accentLight,
-                            iconColor: AppColors.accent,
+
+                            icon:
+                            Icons.receipt_long_rounded,
+
+                            title:
+                            'My Returns',
+
+                            subtitle:
+                            'Track your filed returns',
+
+                            iconBg:
+                            AppColors.accentLight,
+
+                            iconColor:
+                            AppColors.accent,
+
                             onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const MyReturnsScreen())),
+
+                              context,
+
+                              MaterialPageRoute(
+
+                                builder: (_) =>
+                                const MyReturnsScreen(),
+                              ),
+                            ),
                           ),
                         ),
+
                         const SizedBox(width: 14),
+
                         Expanded(
+
                           child: _HalfCard(
-                            icon: Icons.headset_mic_rounded,
-                            title: 'Need Help?',
-                            subtitle: 'FAQs & expert support',
-                            iconBg: const Color(0xFFFFF3E8),
-                            iconColor: const Color(0xFFF97316),
+
+                            icon:
+                            Icons.headset_mic_rounded,
+
+                            title:
+                            'Need Help?',
+
+                            subtitle:
+                            'FAQs & expert support',
+
+                            iconBg:
+                            const Color(0xFFFFF3E8),
+
+                            iconColor:
+                            const Color(0xFFF97316),
+
                             onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const NeedHelpScreen())),
+
+                              context,
+
+                              MaterialPageRoute(
+
+                                builder: (_) =>
+                                const NeedHelpScreen(),
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -233,81 +409,156 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-// ── Full-width card ────────────────────────────────────────────────────────
+// ── FULL WIDTH CARD ───────────────────────────────────────────────────────
 class _WideCard extends StatelessWidget {
+
   final IconData icon;
   final String title;
   final String subtitle;
+
   final Color iconBg;
   final Color iconColor;
+
   final VoidCallback onTap;
 
   const _WideCard({
+
     required this.icon,
     required this.title,
     required this.subtitle,
+
     required this.iconBg,
     required this.iconColor,
+
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+
     return GestureDetector(
+
       onTap: onTap,
+
       child: Container(
+
         padding: const EdgeInsets.all(18),
+
         decoration: BoxDecoration(
-          color: AppColors.cardBg,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.divider),
+
+          color:
+          AppColors.cardBg,
+
+          borderRadius:
+          BorderRadius.circular(16),
+
+          border: Border.all(
+            color: AppColors.divider,
+          ),
+
           boxShadow: [
+
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.07),
+
+              color:
+              AppColors.primary.withOpacity(0.07),
+
               blurRadius: 14,
-              offset: const Offset(0, 4),
+
+              offset:
+              const Offset(0, 4),
             ),
           ],
         ),
+
         child: Row(
+
           children: [
+
             Container(
-              padding: const EdgeInsets.all(12),
+
+              padding:
+              const EdgeInsets.all(12),
+
               decoration: BoxDecoration(
+
                 color: iconBg,
-                borderRadius: BorderRadius.circular(12),
+
+                borderRadius:
+                BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: iconColor, size: 26),
+
+              child: Icon(
+
+                icon,
+
+                color: iconColor,
+                size: 26,
+              ),
             ),
+
             const SizedBox(width: 16),
+
             Expanded(
+
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+
+                crossAxisAlignment:
+                CrossAxisAlignment.start,
+
                 children: [
+
                   Text(
+
                     title,
+
                     style: const TextStyle(
+
                       fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textDark,
-                      fontFamily: 'Poppins',
+
+                      fontWeight:
+                      FontWeight.w700,
+
+                      color:
+                      AppColors.textDark,
+
+                      fontFamily:
+                      'Poppins',
                     ),
                   ),
+
                   const SizedBox(height: 3),
+
                   Text(
+
                     subtitle,
+
                     style: const TextStyle(
+
                       fontSize: 12,
-                      color: AppColors.textLight,
-                      fontFamily: 'Poppins',
+
+                      color:
+                      AppColors.textLight,
+
+                      fontFamily:
+                      'Poppins',
+
                       height: 1.4,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded,
-                size: 14, color: AppColors.textLight),
+
+            const Icon(
+
+              Icons.arrow_forward_ios_rounded,
+
+              size: 14,
+
+              color:
+              AppColors.textLight,
+            ),
           ],
         ),
       ),
@@ -315,70 +566,134 @@ class _WideCard extends StatelessWidget {
   }
 }
 
-// ── Half-width card ────────────────────────────────────────────────────────
+// ── HALF WIDTH CARD ───────────────────────────────────────────────────────
 class _HalfCard extends StatelessWidget {
+
   final IconData icon;
   final String title;
   final String subtitle;
+
   final Color iconBg;
   final Color iconColor;
+
   final VoidCallback onTap;
 
   const _HalfCard({
+
     required this.icon,
     required this.title,
     required this.subtitle,
+
     required this.iconBg,
     required this.iconColor,
+
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+
     return GestureDetector(
+
       onTap: onTap,
+
       child: Container(
+
         padding: const EdgeInsets.all(16),
+
         decoration: BoxDecoration(
-          color: AppColors.cardBg,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.divider),
+
+          color:
+          AppColors.cardBg,
+
+          borderRadius:
+          BorderRadius.circular(16),
+
+          border: Border.all(
+            color: AppColors.divider,
+          ),
+
           boxShadow: [
+
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+
+              color:
+              Colors.black.withOpacity(0.04),
+
               blurRadius: 10,
-              offset: const Offset(0, 4),
+
+              offset:
+              const Offset(0, 4),
             ),
           ],
         ),
+
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+
+          crossAxisAlignment:
+          CrossAxisAlignment.start,
+
           children: [
+
             Container(
-              padding: const EdgeInsets.all(10),
+
+              padding:
+              const EdgeInsets.all(10),
+
               decoration: BoxDecoration(
+
                 color: iconBg,
-                borderRadius: BorderRadius.circular(10),
+
+                borderRadius:
+                BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: iconColor, size: 22),
+
+              child: Icon(
+
+                icon,
+
+                color: iconColor,
+                size: 22,
+              ),
             ),
+
             const SizedBox(height: 12),
+
             Text(
+
               title,
+
               style: const TextStyle(
+
                 fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textDark,
-                fontFamily: 'Poppins',
+
+                fontWeight:
+                FontWeight.w700,
+
+                color:
+                AppColors.textDark,
+
+                fontFamily:
+                'Poppins',
               ),
             ),
+
             const SizedBox(height: 3),
+
             Text(
+
               subtitle,
+
               style: const TextStyle(
+
                 fontSize: 11,
-                color: AppColors.textLight,
-                fontFamily: 'Poppins',
+
+                color:
+                AppColors.textLight,
+
+                fontFamily:
+                'Poppins',
+
                 height: 1.4,
               ),
             ),
@@ -389,32 +704,69 @@ class _HalfCard extends StatelessWidget {
   }
 }
 
-// ── Fallback when image asset not found ───────────────────────────────────
+// ── BANNER FALLBACK ───────────────────────────────────────────────────────
 class _BannerFallback extends StatelessWidget {
+
   @override
   Widget build(BuildContext context) {
+
     return Container(
+
       width: double.infinity,
       height: 180,
+
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.primaryLight, Color(0xFFD0DCFF)],
+
+        borderRadius:
+        BorderRadius.circular(20),
+
+        gradient:
+        const LinearGradient(
+
+          colors: [
+
+            AppColors.primaryLight,
+            Color(0xFFD0DCFF),
+
+          ],
+
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
       ),
+
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+
+        mainAxisAlignment:
+        MainAxisAlignment.center,
+
         children: [
-          Icon(Icons.account_balance_wallet_rounded,
-              size: 52, color: AppColors.primary.withOpacity(0.5)),
+
+          Icon(
+
+            Icons.account_balance_wallet_rounded,
+
+            size: 52,
+
+            color:
+            AppColors.primary.withOpacity(0.5),
+          ),
+
           const SizedBox(height: 8),
+
           Text(
+
             'Add assets/images/tax_filing_banner.png',
+
             style: TextStyle(
+
               fontSize: 11,
-              color: AppColors.primary.withOpacity(0.5),
-              fontFamily: 'Poppins',
+
+              color:
+              AppColors.primary.withOpacity(0.5),
+
+              fontFamily:
+              'Poppins',
             ),
           ),
         ],

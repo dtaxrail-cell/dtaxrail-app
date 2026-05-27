@@ -1,6 +1,5 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../theme/app_theme.dart';
@@ -9,7 +8,13 @@ import '../services/document_service.dart';
 import '../services/filing_service.dart';
 
 class StartFilingScreen extends StatefulWidget {
-  const StartFilingScreen({super.key});
+
+  final Map<String, dynamic> member;
+
+  const StartFilingScreen({
+    super.key,
+    required this.member,
+  });
 
   @override
   State<StartFilingScreen> createState() =>
@@ -19,88 +24,24 @@ class StartFilingScreen extends StatefulWidget {
 class _StartFilingScreenState
     extends State<StartFilingScreen> {
 
-  final _nameCtrl = TextEditingController();
-  final _panCtrl = TextEditingController();
-  final _dobCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
 
   bool _isLoading = false;
-  bool _panVerified = false;
 
-  String _panName = '';
+  bool _isPickingFile = false;
+
+  double _uploadProgress = 0;
 
   final List<Map<String, dynamic>>
   _uploadedDocs = [];
 
-
-
-
-
-  void _verifyPan() {
-
-    if (_panCtrl.text.length < 10) {
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    Future.delayed(
-      const Duration(seconds: 1),
-          () {
-
-        setState(() {
-
-          _isLoading = false;
-
-          _panVerified = true;
-
-          _panName =
-          _nameCtrl.text.isEmpty
-              ? 'PAN VERIFIED'
-              : _nameCtrl.text.toUpperCase();
-
-        });
-      },
-    );
-  }
-
-
-
-
-
-  Future<void> _pickDate() async {
-
-    final picked =
-    await showDatePicker(
-
-      context: context,
-
-      initialDate: DateTime(1998),
-
-      firstDate: DateTime(1940),
-
-      lastDate: DateTime.now(),
-    );
-
-    if (picked != null) {
-
-      _dobCtrl.text =
-      '${picked.day}/${picked.month}/${picked.year}';
-    }
-  }
-
-
-
-
-
-
   Future<void> _pickDocument(
       String documentType,
       ) async {
+
+    setState(() {
+      _isPickingFile = true;
+    });
 
     try {
 
@@ -136,9 +77,7 @@ class _StartFilingScreenState
 
           "size":
           "${(file.size / 1024).toStringAsFixed(1)} KB",
-
         });
-
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -153,17 +92,25 @@ class _StartFilingScreenState
     } catch (e) {
 
       print(e);
+
+    } finally {
+
+      if (mounted) {
+
+        setState(() {
+          _isPickingFile = false;
+        });
+      }
     }
   }
-
-
-
-
-
 
   Future<void> _captureDocument(
       String documentType,
       ) async {
+
+    setState(() {
+      _isPickingFile = true;
+    });
 
     try {
 
@@ -190,9 +137,7 @@ class _StartFilingScreenState
           "path": image.path,
 
           "size": "Camera Image",
-
         });
-
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -207,16 +152,23 @@ class _StartFilingScreenState
     } catch (e) {
 
       print(e);
+
+    } finally {
+
+      if (mounted) {
+
+        setState(() {
+          _isPickingFile = false;
+        });
+      }
     }
   }
 
-
-
-
-
-
-
   Future<void> _submitFiling() async {
+
+    if (_isLoading) {
+      return;
+    }
 
     try {
 
@@ -235,12 +187,11 @@ class _StartFilingScreenState
       }
 
       setState(() {
+
         _isLoading = true;
+
+        _uploadProgress = 0;
       });
-
-
-
-
 
       final filingResponse =
       await FilingService.createFiling(
@@ -251,21 +202,9 @@ class _StartFilingScreenState
 
         notes: _notesCtrl.text,
 
-        memberName: _nameCtrl.text,
-
-        memberPan: _panCtrl.text,
-
-        memberPhone: _phoneCtrl.text,
-
-        memberEmail: _emailCtrl.text,
-
-        relationship: "Self",
-
+        memberId:
+        widget.member["id"].toString(),
       );
-
-
-
-
 
       if (
       filingResponse == null ||
@@ -277,21 +216,13 @@ class _StartFilingScreenState
         );
       }
 
-
-
-
-
-
       final filingId =
-      filingResponse["filing"]["id"];
+      filingResponse["filing"]["id"]
+          .toString();
 
+      for (int i = 0; i < _uploadedDocs.length; i++) {
 
-
-
-
-
-
-      for (final doc in _uploadedDocs) {
+        final doc = _uploadedDocs[i];
 
         await DocumentService.uploadDocumentDirect(
 
@@ -303,14 +234,22 @@ class _StartFilingScreenState
 
           fileName: doc["name"],
 
+          onSendProgress: (sent, total) {
+
+            if (mounted) {
+
+              setState(() {
+
+                _uploadProgress =
+                    (i + (sent / total)) /
+                        _uploadedDocs.length;
+              });
+            }
+          },
         );
       }
 
-
-
-
-
-
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
 
@@ -321,17 +260,7 @@ class _StartFilingScreenState
         ),
       );
 
-
-
-
-
-
-
-      setState(() {
-
-        _uploadedDocs.clear();
-
-      });
+      Navigator.pop(context);
 
     } catch (e) {
 
@@ -348,45 +277,35 @@ class _StartFilingScreenState
 
     } finally {
 
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+
+        setState(() {
+
+          _isLoading = false;
+        });
+      }
     }
   }
-
-
-
-
-
-
-
 
   @override
   void dispose() {
 
-    _nameCtrl.dispose();
-    _panCtrl.dispose();
-    _dobCtrl.dispose();
-    _phoneCtrl.dispose();
-    _emailCtrl.dispose();
     _notesCtrl.dispose();
 
     super.dispose();
   }
 
-
-
-
-
-
-
-
   @override
   Widget build(BuildContext context) {
 
-    return Scaffold(
+    return Stack(
 
-      backgroundColor: AppColors.background,
+      children: [
+
+        Scaffold(
+
+            backgroundColor:
+            AppColors.background,
 
       appBar: AppBar(
 
@@ -401,9 +320,11 @@ class _StartFilingScreenState
 
           style: TextStyle(
 
-            fontWeight: FontWeight.w700,
-            fontFamily: 'Poppins',
+            fontWeight:
+            FontWeight.w700,
 
+            fontFamily:
+            'Poppins',
           ),
         ),
 
@@ -416,13 +337,15 @@ class _StartFilingScreenState
 
         child: SingleChildScrollView(
 
-          padding: const EdgeInsets.all(20),
+          padding:
+          const EdgeInsets.all(20),
 
           child: Center(
 
             child: ConstrainedBox(
 
-              constraints: const BoxConstraints(
+              constraints:
+              const BoxConstraints(
                 maxWidth: 650,
               ),
 
@@ -441,11 +364,14 @@ class _StartFilingScreenState
 
                       fontSize: 28,
 
-                      fontWeight: FontWeight.w800,
+                      fontWeight:
+                      FontWeight.w800,
 
-                      color: AppColors.textDark,
+                      color:
+                      AppColors.textDark,
 
-                      fontFamily: 'Poppins',
+                      fontFamily:
+                      'Poppins',
                     ),
                   ),
 
@@ -459,9 +385,11 @@ class _StartFilingScreenState
 
                       fontSize: 15,
 
-                      color: AppColors.textMid,
+                      color:
+                      AppColors.textMid,
 
-                      fontFamily: 'Poppins',
+                      fontFamily:
+                      'Poppins',
                     ),
                   ),
 
@@ -469,142 +397,84 @@ class _StartFilingScreenState
 
                   _sectionCard(
 
-                    title: 'Personal Details',
+                    title:
+                    'Selected Member',
 
                     child: Column(
 
                       children: [
 
-                        TextFormField(
+                        _memberTile(
 
-                          controller: _nameCtrl,
+                          icon:
+                          Icons.person_rounded,
 
-                          decoration:
-                          const InputDecoration(
+                          label:
+                          'Full Name',
 
-                            labelText: 'Full Name',
-
-                            prefixIcon: Icon(
-                              Icons.person_rounded,
-                              color: AppColors.primary,
-                            ),
-                          ),
+                          value:
+                          widget.member["full_name"]
+                              ?? "N/A",
                         ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 14),
 
-                        TextFormField(
+                        _memberTile(
 
-                          controller: _panCtrl,
+                          icon:
+                          Icons.credit_card_rounded,
 
-                          maxLength: 10,
+                          label:
+                          'PAN Number',
 
-                          textCapitalization:
-                          TextCapitalization.characters,
-
-                          inputFormatters: [
-
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'[A-Z0-9]'),
-                            ),
-                          ],
-
-                          onChanged: (v) {
-
-                            if (v.length == 10) {
-                              _verifyPan();
-                            }
-                          },
-
-                          decoration:
-                          const InputDecoration(
-
-                            labelText: 'PAN Number',
-
-                            hintText: 'ABCDE1234F',
-
-                            counterText: '',
-
-                            prefixIcon: Icon(
-                              Icons.credit_card_rounded,
-                              color: AppColors.primary,
-                            ),
-                          ),
+                          value:
+                          widget.member["pan_number"]
+                              ?? "N/A",
                         ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 14),
 
-                        if (_panVerified)
-                          Container(
+                        _memberTile(
 
-                            width: double.infinity,
+                          icon:
+                          Icons.phone_rounded,
 
-                            padding:
-                            const EdgeInsets.all(14),
+                          label:
+                          'Phone Number',
 
-                            decoration: BoxDecoration(
+                          value:
+                          widget.member["phone"]
+                              ?? "N/A",
+                        ),
 
-                              color: AppColors.accent
-                                  .withOpacity(0.12),
+                        const SizedBox(height: 14),
 
-                              borderRadius:
-                              BorderRadius.circular(14),
-                            ),
+                        _memberTile(
 
-                            child: Row(
+                          icon:
+                          Icons.email_rounded,
 
-                              children: [
+                          label:
+                          'Email Address',
 
-                                const Icon(
-                                  Icons.check_circle_rounded,
-                                  color: AppColors.accent,
-                                ),
+                          value:
+                          widget.member["email"]
+                              ?? "N/A",
+                        ),
 
-                                const SizedBox(width: 10),
+                        const SizedBox(height: 14),
 
-                                Expanded(
+                        _memberTile(
 
-                                  child: Text(
+                          icon:
+                          Icons.people_alt_rounded,
 
-                                    _panName,
+                          label:
+                          'Relationship',
 
-                                    style:
-                                    const TextStyle(
-
-                                      fontWeight:
-                                      FontWeight.w700,
-
-                                      fontFamily:
-                                      'Poppins',
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                        const SizedBox(height: 16),
-
-                        TextFormField(
-
-                          controller: _dobCtrl,
-
-                          readOnly: true,
-
-                          onTap: _pickDate,
-
-                          decoration:
-                          const InputDecoration(
-
-                            labelText: 'Date of Birth',
-
-                            hintText: 'DD/MM/YYYY',
-
-                            prefixIcon: Icon(
-                              Icons.calendar_month_rounded,
-                              color: AppColors.primary,
-                            ),
-                          ),
+                          value:
+                          widget.member["relationship"]
+                              ?? "N/A",
                         ),
                       ],
                     ),
@@ -614,94 +484,49 @@ class _StartFilingScreenState
 
                   _sectionCard(
 
-                    title: 'Contact Details',
-
-                    child: Column(
-
-                      children: [
-
-                        TextFormField(
-
-                          controller: _phoneCtrl,
-
-                          keyboardType:
-                          TextInputType.phone,
-
-                          decoration:
-                          const InputDecoration(
-
-                            labelText: 'Phone Number',
-
-                            prefixIcon: Icon(
-                              Icons.phone_rounded,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        TextFormField(
-
-                          controller: _emailCtrl,
-
-                          keyboardType:
-                          TextInputType.emailAddress,
-
-                          decoration:
-                          const InputDecoration(
-
-                            labelText: 'Email Address',
-
-                            prefixIcon: Icon(
-                              Icons.email_rounded,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 22),
-
-                  _sectionCard(
-
-                    title: 'Upload Documents',
+                    title:
+                    'Upload Documents',
 
                     child: Column(
 
                       children: [
 
                         _documentUploadCard(
-                          title: 'Aadhaar Card',
+                          title:
+                          'Aadhaar Card',
                         ),
 
                         const SizedBox(height: 16),
 
                         _documentUploadCard(
-                          title: 'PAN Card',
+                          title:
+                          'PAN Card',
                         ),
 
                         const SizedBox(height: 16),
 
                         _documentUploadCard(
-                          title: 'Form 16',
+                          title:
+                          'Form 16',
                         ),
 
                         const SizedBox(height: 16),
 
                         _documentUploadCard(
-                          title: 'Bank Statement',
+                          title:
+                          'Bank Statement',
                         ),
 
                         const SizedBox(height: 16),
 
                         _documentUploadCard(
-                          title: 'Other Documents',
+                          title:
+                          'Other Documents',
                         ),
 
-                        if (_uploadedDocs.isNotEmpty) ...[
+                        if (
+                        _uploadedDocs.isNotEmpty
+                        ) ...[
 
                           const SizedBox(height: 26),
 
@@ -721,7 +546,8 @@ class _StartFilingScreenState
                                 fontWeight:
                                 FontWeight.w700,
 
-                                fontFamily: 'Poppins',
+                                fontFamily:
+                                'Poppins',
                               ),
                             ),
                           ),
@@ -740,7 +566,8 @@ class _StartFilingScreenState
                               padding:
                               const EdgeInsets.all(14),
 
-                              decoration: BoxDecoration(
+                              decoration:
+                              BoxDecoration(
 
                                 color:
                                 AppColors.background,
@@ -763,14 +590,13 @@ class _StartFilingScreenState
                                   Container(
 
                                     padding:
-                                    const EdgeInsets
-                                        .all(10),
+                                    const EdgeInsets.all(10),
 
                                     decoration:
                                     BoxDecoration(
 
-                                      color: Colors.red
-                                          .withOpacity(0.1),
+                                      color:
+                                      Colors.red.withOpacity(0.1),
 
                                       borderRadius:
                                       BorderRadius.circular(
@@ -778,9 +604,13 @@ class _StartFilingScreenState
                                       ),
                                     ),
 
-                                    child: const Icon(
+                                    child:
+                                    const Icon(
+
                                       Icons.picture_as_pdf_rounded,
-                                      color: Colors.red,
+
+                                      color:
+                                      Colors.red,
                                     ),
                                   ),
 
@@ -791,8 +621,7 @@ class _StartFilingScreenState
                                     child: Column(
 
                                       crossAxisAlignment:
-                                      CrossAxisAlignment
-                                          .start,
+                                      CrossAxisAlignment.start,
 
                                       children: [
 
@@ -811,9 +640,7 @@ class _StartFilingScreenState
                                           ),
                                         ),
 
-                                        const SizedBox(
-                                          height: 4,
-                                        ),
+                                        const SizedBox(height: 4),
 
                                         Text(
 
@@ -836,8 +663,11 @@ class _StartFilingScreenState
                                   ),
 
                                   const Icon(
+
                                     Icons.check_circle_rounded,
-                                    color: AppColors.accent,
+
+                                    color:
+                                    AppColors.accent,
                                   ),
                                 ],
                               ),
@@ -852,11 +682,13 @@ class _StartFilingScreenState
 
                   _sectionCard(
 
-                    title: 'Additional Notes',
+                    title:
+                    'Additional Notes',
 
                     child: TextFormField(
 
-                      controller: _notesCtrl,
+                      controller:
+                      _notesCtrl,
 
                       maxLines: 4,
 
@@ -880,9 +712,11 @@ class _StartFilingScreenState
                       label:
                       'Submit Filing Request',
 
-                      onTap: _submitFiling,
+                      onTap:
+                      _submitFiling,
 
-                      isLoading: _isLoading,
+                      isLoading:
+                      _isLoading,
                     ),
                   ),
 
@@ -893,15 +727,46 @@ class _StartFilingScreenState
           ),
         ),
       ),
+        ),
+
+        if (_isLoading || _isPickingFile)
+          Container(
+            color: Colors.black.withOpacity(0.25),
+
+            child: const Center(
+
+              child: Column(
+
+                mainAxisSize: MainAxisSize.min,
+
+                children: [
+
+                  CircularProgressIndicator(),
+
+                  SizedBox(height: 16),
+
+                  Text(
+
+                    "Please wait...",
+
+                    style: TextStyle(
+
+                      fontSize: 15,
+
+                      fontWeight: FontWeight.w500,
+
+                      fontFamily: 'Poppins',
+
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
-
-
-
-
-
-
-
 
   Widget _sectionCard({
 
@@ -915,17 +780,20 @@ class _StartFilingScreenState
 
       width: double.infinity,
 
-      padding: const EdgeInsets.all(18),
+      padding:
+      const EdgeInsets.all(18),
 
       decoration: BoxDecoration(
 
-        color: AppColors.surface,
+        color:
+        AppColors.surface,
 
         borderRadius:
         BorderRadius.circular(22),
 
         border: Border.all(
-          color: AppColors.divider,
+          color:
+          AppColors.divider,
         ),
       ),
 
@@ -940,15 +808,19 @@ class _StartFilingScreenState
 
             title,
 
-            style: const TextStyle(
+            style:
+            const TextStyle(
 
               fontSize: 18,
 
-              fontWeight: FontWeight.w700,
+              fontWeight:
+              FontWeight.w700,
 
-              fontFamily: 'Poppins',
+              fontFamily:
+              'Poppins',
 
-              color: AppColors.textDark,
+              color:
+              AppColors.textDark,
             ),
           ),
 
@@ -960,12 +832,120 @@ class _StartFilingScreenState
     );
   }
 
+  Widget _memberTile({
 
+    required IconData icon,
 
+    required String label,
 
+    required String value,
 
+  }) {
 
+    return Container(
 
+      padding:
+      const EdgeInsets.all(14),
+
+      decoration: BoxDecoration(
+
+        color:
+        AppColors.background,
+
+        borderRadius:
+        BorderRadius.circular(16),
+
+        border: Border.all(
+          color:
+          AppColors.divider,
+        ),
+      ),
+
+      child: Row(
+
+        children: [
+
+          Container(
+
+            padding:
+            const EdgeInsets.all(10),
+
+            decoration: BoxDecoration(
+
+              color:
+              AppColors.primaryLight,
+
+              borderRadius:
+              BorderRadius.circular(12),
+            ),
+
+            child: Icon(
+
+              icon,
+
+              color:
+              AppColors.primary,
+
+              size: 22,
+            ),
+          ),
+
+          const SizedBox(width: 14),
+
+          Expanded(
+
+            child: Column(
+
+              crossAxisAlignment:
+              CrossAxisAlignment.start,
+
+              children: [
+
+                Text(
+
+                  label,
+
+                  style:
+                  const TextStyle(
+
+                    fontSize: 12,
+
+                    color:
+                    AppColors.textMid,
+
+                    fontFamily:
+                    'Poppins',
+                  ),
+                ),
+
+                const SizedBox(height: 4),
+
+                Text(
+
+                  value,
+
+                  style:
+                  const TextStyle(
+
+                    fontSize: 15,
+
+                    fontWeight:
+                    FontWeight.w700,
+
+                    color:
+                    AppColors.textDark,
+
+                    fontFamily:
+                    'Poppins',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _documentUploadCard({
 
@@ -975,16 +955,19 @@ class _StartFilingScreenState
 
     return Container(
 
-      padding: const EdgeInsets.all(16),
+      padding:
+      const EdgeInsets.all(16),
 
       decoration: BoxDecoration(
 
-        color: AppColors.primaryLight,
+        color:
+        AppColors.primaryLight,
 
         borderRadius:
         BorderRadius.circular(18),
 
         border: Border.all(
+
           color:
           AppColors.primary.withOpacity(0.2),
         ),
@@ -1003,17 +986,23 @@ class _StartFilingScreenState
                 padding:
                 const EdgeInsets.all(12),
 
-                decoration: BoxDecoration(
+                decoration:
+                BoxDecoration(
 
-                  color: Colors.white,
+                  color:
+                  Colors.white,
 
                   borderRadius:
                   BorderRadius.circular(14),
                 ),
 
-                child: const Icon(
+                child:
+                const Icon(
+
                   Icons.description_rounded,
-                  color: AppColors.primary,
+
+                  color:
+                  AppColors.primary,
                 ),
               ),
 
@@ -1025,15 +1014,19 @@ class _StartFilingScreenState
 
                   title,
 
-                  style: const TextStyle(
+                  style:
+                  const TextStyle(
 
                     fontSize: 16,
 
-                    fontWeight: FontWeight.w700,
+                    fontWeight:
+                    FontWeight.w700,
 
-                    fontFamily: 'Poppins',
+                    fontFamily:
+                    'Poppins',
 
-                    color: AppColors.textDark,
+                    color:
+                    AppColors.textDark,
                   ),
                 ),
               ),
@@ -1048,16 +1041,20 @@ class _StartFilingScreenState
 
               Expanded(
 
-                child: OutlinedButton.icon(
+                child:
+                OutlinedButton.icon(
 
                   onPressed:
                       () => _pickDocument(title),
 
-                  icon: const Icon(
+                  icon:
+                  const Icon(
+
                     Icons.folder_open_rounded,
                   ),
 
-                  label: const Text(
+                  label:
+                  const Text(
                     'Choose File',
                   ),
                 ),
@@ -1067,16 +1064,20 @@ class _StartFilingScreenState
 
               Expanded(
 
-                child: ElevatedButton.icon(
+                child:
+                ElevatedButton.icon(
 
                   onPressed:
                       () => _captureDocument(title),
 
-                  icon: const Icon(
+                  icon:
+                  const Icon(
+
                     Icons.camera_alt_rounded,
                   ),
 
-                  label: const Text(
+                  label:
+                  const Text(
                     'Use Camera',
                   ),
                 ),
