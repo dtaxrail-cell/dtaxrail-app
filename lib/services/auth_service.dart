@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import '../config/api_config.dart';
 
 class FirebaseAuthService {
 

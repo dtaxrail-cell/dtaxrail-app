@@ -146,8 +146,7 @@ class StatusBadge extends StatelessWidget {
     switch (status) {
       case 'Pending':
         return AppColors.statusPending;
-      case 'In Review':
-        return AppColors.statusReview;
+      case 'Under Review': return AppColors.statusReview; case 'Documents Requested': return const Color(0xFFEDE9FE);
       case 'Filed':
         return AppColors.statusFiled;
       case 'Completed':
@@ -161,8 +160,7 @@ class StatusBadge extends StatelessWidget {
     switch (status) {
       case 'Pending':
         return const Color(0xFF7D4E00);
-      case 'In Review':
-        return const Color(0xFF1A4A7A);
+      case 'Under Review': return const Color(0xFF1A4A7A); case 'Documents Requested': return const Color(0xFF6D28D9);
       case 'Filed':
         return const Color(0xFF7D1A1A);
       case 'Completed':

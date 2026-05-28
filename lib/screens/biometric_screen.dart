@@ -9,6 +9,9 @@ import '../services/google_auth_service.dart';
 import 'main_navigation_screen.dart';
 import 'auth_screen.dart';
 import 'complete_profile_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../config/api_config.dart';
+
 class BiometricScreen extends StatefulWidget {
 
   const BiometricScreen({super.key});
@@ -82,18 +85,40 @@ class _BiometricScreenState
       );
 
       if (authenticated && mounted) {
+        print("BIOMETRIC SUCCESS");
 
         // GET FIREBASE TOKEN
+        final currentUser =
+            FirebaseAuth.instance.currentUser;
+
+        if (currentUser == null) {
+
+          print("USER NULL AFTER BIOMETRIC");
+
+          if (!mounted) return;
+
+          Navigator.pushReplacement(
+
+            context,
+
+            MaterialPageRoute(
+              builder: (_) =>
+              const AuthScreen(),
+            ),
+          );
+
+          return;
+        }
+
         final token =
-        await FirebaseAuth
-            .instance
-            .currentUser!
-            .getIdToken();
+        await currentUser.getIdToken();
+
+        print("CALLING ENABLE BIOMETRIC API");
 
         // UPDATE BIOMETRIC STATUS IN BACKEND
         await Dio().post(
 
-          'http://10.79.198.214:5000/auth/enable-biometric',
+          '${ApiConfig.baseUrl}/auth/enable-biometric',
 
           options: Options(
             headers: {
@@ -102,15 +127,15 @@ class _BiometricScreenState
             },
           ),
         );
-
+        print("ENABLE BIOMETRIC API SUCCESS");
         print(
           "Biometric enabled in DB",
         );
-
+        print("FETCHING CUSTOMER");
         // CHECK CUSTOMER PROFILE
         final response = await Dio().get(
 
-          'http://10.79.198.214:5000/customers/me',
+          '${ApiConfig.baseUrl}/customers/me',
 
           options: Options(
 
@@ -120,7 +145,7 @@ class _BiometricScreenState
             },
           ),
         );
-
+        print("CUSTOMER FETCHED");
         final customer =
         response.data['customer'];
 
@@ -128,7 +153,7 @@ class _BiometricScreenState
         customer['phone'];
 
         if (!mounted) return;
-
+        print("GOING TO HOME");
         if (
         phone == null ||
             phone.toString().isEmpty

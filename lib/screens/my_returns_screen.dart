@@ -1,290 +1,607 @@
 import 'package:flutter/material.dart';
+
 import '../theme/app_theme.dart';
 import '../widgets/common_widgets.dart';
 
+import '../services/filing_service.dart';
+import '../services/document_service.dart';
+
 class MyReturnsScreen extends StatefulWidget {
+
   const MyReturnsScreen({super.key});
 
   @override
-  State<MyReturnsScreen> createState() => _MyReturnsScreenState();
+  State<MyReturnsScreen> createState() =>
+      _MyReturnsScreenState();
 }
 
-class _MyReturnsScreenState extends State<MyReturnsScreen> {
-  String _filter = 'All';
+class _MyReturnsScreenState
+    extends State<MyReturnsScreen> {
 
-  static const List<Map<String, String>> _filings = [
-    {
-      'id': '#DTR-2025-001',
-      'year': 'FY 2024-25',
-      'type': 'ITR-1',
-      'status': 'In Review',
-      'date': '12 May 2025',
-      'title': 'ITR Filing FY 2024-25',
-    },
-    {
-      'id': '#DTR-2025-002',
-      'year': 'FY 2024-25',
-      'type': 'ITR-1',
-      'status': 'Pending',
-      'date': '01 Jun 2025',
-      'title': 'Tax Notice Response',
-    },
-    {
-      'id': '#DTR-2024-003',
-      'year': 'FY 2023-24',
-      'type': 'ITR-1',
-      'status': 'Completed',
-      'date': '18 Jul 2024',
-      'title': 'ITR Filing FY 2023-24',
-    },
-    {
-      'id': '#DTR-2023-007',
-      'year': 'FY 2022-23',
-      'type': 'ITR-2',
-      'status': 'Completed',
-      'date': '28 Jun 2023',
-      'title': 'ITR Filing FY 2022-23',
-    },
-  ];
+  bool _isLoading = true;
 
-  static const _filters = ['All', 'Pending', 'In Review', 'Filed', 'Completed'];
+  List<dynamic> _filings = [];
 
-  List<Map<String, String>> get _filtered {
-    if (_filter == 'All') return List<Map<String, String>>.from(_filings);
-    return _filings.where((o) => o['status'] == _filter).toList();
+  @override
+  void initState() {
+
+    super.initState();
+
+    _loadFilings();
+  }
+
+  Future<void> _loadFilings() async {
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    final filings =
+    await FilingService.getCustomerFilings();
+
+    if (!mounted) return;
+
+    setState(() {
+
+      _filings = filings;
+
+      _isLoading = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+
+      backgroundColor:
+      AppColors.background,
+
       appBar: AppBar(
-        title: const Text('My Returns & Orders'),
-        leading: BackButton(color: AppColors.textDark),
+
+        title: const Text(
+          'My Returns & Orders',
+        ),
+
+        leading: const BackButton(
+          color: AppColors.textDark,
+        ),
       ),
+
       body: SafeArea(
-        child: Column(
-          children: [
-            // ── Filter chips ──────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: _filters.map((s) {
-                    final active = _filter == s;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: GestureDetector(
-                        onTap: () => setState(() => _filter = s),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: active
-                                ? AppColors.primary
-                                : AppColors.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: active
-                                  ? AppColors.primary
-                                  : AppColors.divider,
-                            ),
-                          ),
-                          child: Text(
-                            s,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color:
-                              active ? Colors.white : AppColors.textMid,
-                              fontFamily: 'Poppins',
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
+
+        child: _isLoading
+
+            ? const Center(
+          child:
+          CircularProgressIndicator(),
+        )
+
+            : _filings.isEmpty
+
+            ? const Center(
+
+          child: Column(
+
+            mainAxisAlignment:
+            MainAxisAlignment.center,
+
+            children: [
+
+              Icon(
+
+                Icons.inbox_rounded,
+
+                size: 60,
+
+                color:
+                AppColors.textLight,
+              ),
+
+              SizedBox(height: 12),
+
+              Text(
+
+                'No filings found',
+
+                style: TextStyle(
+
+                  color:
+                  AppColors.textLight,
+
+                  fontFamily:
+                  'Poppins',
+
+                  fontSize: 14,
                 ),
               ),
-            ),
+            ],
+          ),
+        )
 
-            const SizedBox(height: 14),
+            : RefreshIndicator(
 
-            // ── Filing cards list ─────────────────────────────────────
-            Expanded(
-              child: _filtered.isEmpty
-                  ? const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.inbox_rounded,
-                        size: 60, color: AppColors.textLight),
-                    SizedBox(height: 12),
-                    Text(
-                      'No filings found',
-                      style: TextStyle(
-                          color: AppColors.textLight,
-                          fontFamily: 'Poppins',
-                          fontSize: 14),
-                    ),
-                  ],
-                ),
-              )
-                  : ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                itemCount: _filtered.length,
-                itemBuilder: (ctx, i) =>
-                    _FilingCard(filing: _filtered[i]),
-              ),
-            ),
-          ],
+          onRefresh:
+          _loadFilings,
+
+          child:
+          ListView.builder(
+
+            padding:
+            const EdgeInsets.all(18),
+
+            itemCount:
+            _filings.length,
+
+            itemBuilder:
+                (ctx, i) {
+
+              return _FilingCard(
+                filing: _filings[i],
+              );
+            },
+          ),
         ),
       ),
     );
   }
 }
 
-// ── Filing Card ───────────────────────────────────────────────────────────
+
+
+
+
+// ==========================================
+// FILING CARD
+// ==========================================
 class _FilingCard extends StatelessWidget {
-  final Map<String, String> filing;
-  const _FilingCard({required this.filing});
+
+  final dynamic filing;
+
+  const _FilingCard({
+    required this.filing,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final status = filing['status'] ?? 'Pending';
-    final isCompleted = status == 'Completed';
+    final status =
+        filing['status'] ?? 'Pending';
+
+    final bool hasRequest =
+
+        filing['latest_admin_message'] != null &&
+
+            filing['latest_admin_message']
+                .toString()
+                .trim()
+                .isNotEmpty &&
+
+            status == 'Documents Requested';
+
+    final bool isCompleted =
+        status == 'Completed';
+
+    final bool isPaid =
+
+        filing['payment_status'] == 'Paid';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(18),
+
+      margin:
+      const EdgeInsets.only(
+        bottom: 16,
+      ),
+
+      padding:
+      const EdgeInsets.all(18),
+
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.divider),
+
+        color:
+        AppColors.cardBg,
+
+        borderRadius:
+        BorderRadius.circular(18),
+
+        border: Border.all(
+          color:
+          AppColors.divider,
+        ),
+
         boxShadow: [
+
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+
+            color:
+            Colors.black.withOpacity(0.04),
+
             blurRadius: 10,
-            offset: const Offset(0, 4),
+
+            offset:
+            const Offset(0, 4),
           ),
         ],
       ),
+
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+
+        crossAxisAlignment:
+        CrossAxisAlignment.start,
+
         children: [
-          // ── Header row ──────────────────────────────────────────────
+
+          // HEADER
           Row(
+
             children: [
+
               Expanded(
+
                 child: Text(
-                  filing['title'] ?? '',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textDark,
-                    fontFamily: 'Poppins',
+
+                  filing['filing_type']
+                      ?? 'ITR Filing',
+
+                  style:
+                  const TextStyle(
+
+                    fontSize: 16,
+
+                    fontWeight:
+                    FontWeight.w700,
+
+                    color:
+                    AppColors.textDark,
+
+                    fontFamily:
+                    'Poppins',
                   ),
                 ),
               ),
+
               StatusBadge(status),
             ],
           ),
 
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
 
-          // ── Meta ─────────────────────────────────────────────────────
+          // MEMBER
           Text(
-            '${filing['year']} · ${filing['type']}',
+
+            filing['member_name']
+                ?? 'Family Member',
+
             style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.textMid,
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w500),
+
+              fontSize: 13,
+
+              color:
+              AppColors.textMid,
+
+              fontFamily:
+              'Poppins',
+
+              fontWeight:
+              FontWeight.w600,
+            ),
           ),
-          const SizedBox(height: 2),
+
+          const SizedBox(height: 4),
+
           Text(
-            'Order ID: ${filing['id']}  ·  Submitted: ${filing['date']}',
+
+            'Relationship: ${filing['relationship'] ?? "Self"}',
+
             style: const TextStyle(
-                fontSize: 11,
-                color: AppColors.textLight,
-                fontFamily: 'Poppins'),
+
+              fontSize: 11,
+
+              color:
+              AppColors.textLight,
+
+              fontFamily:
+              'Poppins',
+            ),
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 4),
 
-          // ── Progress bar (non-completed) ─────────────────────────────
-          if (!isCompleted) ...[
-            _MiniProgressBar(status: status),
-            const SizedBox(height: 14),
+          Text(
+
+            'Documents Uploaded: ${filing['document_count'] ?? 0}',
+
+            style: const TextStyle(
+
+              fontSize: 11,
+
+              color:
+              AppColors.textLight,
+
+              fontFamily:
+              'Poppins',
+            ),
+          ),
+
+          // PAYMENT STATUS
+          if (isCompleted) ...[
+
+            const SizedBox(height: 10),
+
+            Row(
+
+              children: [
+
+                Icon(
+
+                  isPaid
+                      ? Icons.verified_rounded
+                      : Icons.cancel_rounded,
+
+                  color:
+                  isPaid
+                      ? Colors.green
+                      : Colors.red,
+
+                  size: 18,
+                ),
+
+                const SizedBox(width: 6),
+
+                Text(
+
+                  isPaid
+                      ? 'Payment Completed'
+                      : 'Payment Pending',
+
+                  style: TextStyle(
+
+                    color:
+                    isPaid
+                        ? Colors.green
+                        : Colors.red,
+
+                    fontWeight:
+                    FontWeight.w600,
+
+                    fontSize: 12,
+
+                    fontFamily:
+                    'Poppins',
+                  ),
+                ),
+              ],
+            ),
           ],
 
-          // ── Actions ──────────────────────────────────────────────────
-          Row(
-            children: [
-              // Upload Docs button — disabled if Completed
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: isCompleted
-                      ? null
-                      : () => _showUploadSheet(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    disabledBackgroundColor: AppColors.divider,
-                    foregroundColor: Colors.white,
-                    disabledForegroundColor: AppColors.textLight,
-                    padding: const EdgeInsets.symmetric(vertical: 11),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+          // ADMIN REQUEST
+          if (hasRequest) ...[
+
+            const SizedBox(height: 14),
+
+            Container(
+
+              width: double.infinity,
+
+              padding:
+              const EdgeInsets.all(12),
+
+              decoration: BoxDecoration(
+
+                color:
+                Colors.orange
+                    .withOpacity(0.08),
+
+                borderRadius:
+                BorderRadius.circular(
+                  12,
+                ),
+
+                border: Border.all(
+                  color:
+                  Colors.orange
+                      .withOpacity(0.25),
+                ),
+              ),
+
+              child: Column(
+
+                crossAxisAlignment:
+                CrossAxisAlignment.start,
+
+                children: [
+
+                  const Text(
+
+                    'Additional Documents Requested',
+
+                    style: TextStyle(
+
+                      fontSize: 12,
+
+                      fontWeight:
+                      FontWeight.w700,
+
+                      color:
+                      Colors.orange,
+
+                      fontFamily:
+                      'Poppins',
                     ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  Text(
+
+                    filing['latest_admin_message']
+                        ?? '',
+
+                    style: const TextStyle(
+
+                      fontSize: 12,
+
+                      color:
+                      AppColors.textDark,
+
+                      fontFamily:
+                      'Poppins',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 16),
+
+          // BUTTONS
+          Row(
+
+            children: [
+
+              // VIEW
+              Expanded(
+
+                child:
+                ElevatedButton.icon(
+
+                  onPressed: () {
+                    _showFilingDetails(
+                      context,
+                      filing,
+                    );
+                  },
+
+                  style:
+                  ElevatedButton.styleFrom(
+
+                    backgroundColor:
+                    AppColors.primary,
+
+                    foregroundColor:
+                    Colors.white,
+
+                    padding:
+                    const EdgeInsets.symmetric(
+                      vertical: 11,
+                    ),
+
+                    shape:
+                    RoundedRectangleBorder(
+
+                      borderRadius:
+                      BorderRadius.circular(
+                        12,
+                      ),
+                    ),
+
                     elevation: 0,
                   ),
-                  icon: const Icon(Icons.upload_file_rounded, size: 16),
+
+                  icon: const Icon(
+
+                    Icons.visibility_rounded,
+
+                    size: 16,
+                  ),
+
                   label: const Text(
-                    'Upload Docs',
+
+                    'View Filing',
+
                     style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13),
+
+                      fontFamily:
+                      'Poppins',
+
+                      fontWeight:
+                      FontWeight.w600,
+
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ),
 
               const SizedBox(width: 12),
 
-              // Download — only meaningful for Completed
+              // UPLOAD ADDITIONAL DOCS
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: isCompleted ? () {} : null,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 11),
+
+                child:
+                OutlinedButton.icon(
+
+                  onPressed:
+                  hasRequest
+
+                      ? () {
+                    _showUploadDialog(
+                      context,
+                      filing,
+                    );
+                  }
+
+                      : null,
+
+                  style:
+                  OutlinedButton.styleFrom(
+
+                    padding:
+                    const EdgeInsets.symmetric(
+                      vertical: 11,
+                    ),
+
                     side: BorderSide(
-                      color: isCompleted
+
+                      color:
+                      hasRequest
                           ? AppColors.primary
                           : AppColors.divider,
                     ),
-                    foregroundColor: isCompleted
+
+                    foregroundColor:
+                    hasRequest
                         ? AppColors.primary
                         : AppColors.textLight,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+
+                    shape:
+                    RoundedRectangleBorder(
+
+                      borderRadius:
+                      BorderRadius.circular(
+                        12,
+                      ),
                     ),
                   ),
+
                   icon: Icon(
-                    Icons.download_rounded,
+
+                    Icons.upload_file_rounded,
+
                     size: 16,
-                    color: isCompleted
+
+                    color:
+                    hasRequest
                         ? AppColors.primary
                         : AppColors.textLight,
                   ),
+
                   label: Text(
-                    'Download',
+
+                    'Add Docs',
+
                     style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
+
+                      fontFamily:
+                      'Poppins',
+
+                      fontWeight:
+                      FontWeight.w600,
+
                       fontSize: 13,
-                      color: isCompleted
+
+                      color:
+                      hasRequest
                           ? AppColors.primary
                           : AppColors.textLight,
                     ),
@@ -298,150 +615,266 @@ class _FilingCard extends StatelessWidget {
     );
   }
 
-  void _showUploadSheet(BuildContext ctx) {
-    showModalBottomSheet(
-      context: ctx,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
-      builder: (sheetCtx) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Upload Documents',
-              style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'Poppins',
-                  color: AppColors.textDark),
+
+  // ==========================================
+  // VIEW DETAILS
+  // ==========================================
+  void _showFilingDetails(BuildContext context,
+      dynamic filing,) {
+    showDialog(
+
+      context: context,
+
+      builder: (_) {
+        return AlertDialog(
+
+          shape:
+          RoundedRectangleBorder(
+            borderRadius:
+            BorderRadius.circular(20),
+          ),
+
+          title: Text(
+            filing['filing_type'],
+          ),
+
+          content: Column(
+
+            mainAxisSize:
+            MainAxisSize.min,
+
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
+
+            children: [
+
+              Text(
+                'Member: ${filing['member_name']}',
+              ),
+
+              const SizedBox(height: 8),
+
+              Text(
+                'Status: ${filing['status']}',
+              ),
+
+              const SizedBox(height: 8),
+
+              Text(
+                'Documents: ${filing['document_count']}',
+              ),
+
+              const SizedBox(height: 8),
+
+              Text(
+                'Payment: ${filing['payment_status'] ?? "Pending"}',
+              ),
+
+              if (filing['latest_admin_message'] != null) ...[
+
+                const SizedBox(height: 14),
+
+                const Text(
+
+                  'Admin Request:',
+
+                  style: TextStyle(
+                    fontWeight:
+                    FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
+                Text(
+                  filing['latest_admin_message'],
+                ),
+              ]
+            ],
+          ),
+
+          actions: [
+
+            TextButton(
+
+              onPressed: () {
+                Navigator.pop(context);
+              },
+
+              child: const Text(
+                'Close',
+              ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Order ${filing['id']} — ${filing['title']}',
-              style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textLight,
-                  fontFamily: 'Poppins'),
-            ),
-            const SizedBox(height: 20),
-            _SheetOption(
-              icon: Icons.file_upload_outlined,
-              label: 'Browse Files',
-              onTap: () => Navigator.pop(sheetCtx),
-            ),
-            const SizedBox(height: 10),
-            _SheetOption(
-              icon: Icons.camera_alt_rounded,
-              label: 'Take Photo / Scan',
-              onTap: () => Navigator.pop(sheetCtx),
-            ),
-            const SizedBox(height: 16),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
-}
 
-// ── Mini Progress Bar ──────────────────────────────────────────────────────
-class _MiniProgressBar extends StatelessWidget {
-  final String status;
-  const _MiniProgressBar({required this.status});
 
-  int get _step {
-    switch (status) {
-      case 'Pending':
-        return 0;
-      case 'In Review':
-        return 1;
-      case 'Filed':
-        return 2;
-      case 'Completed':
-        return 3;
-      default:
-        return 0;
-    }
-  }
+// ==========================================
+// UPLOAD DIALOG
+// ==========================================
+  void _showUploadDialog(BuildContext context,
+      dynamic filing,) {
+    showModalBottomSheet(
 
-  @override
-  Widget build(BuildContext context) {
-    const steps = ['Received', 'Review', 'Filing', 'Done'];
-    return Row(
-      children: List.generate(steps.length, (i) {
-        final done = i <= _step;
-        return Expanded(
-          child: Row(
+      context: context,
+
+      shape:
+      const RoundedRectangleBorder(
+
+        borderRadius:
+        BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
+      ),
+
+      builder: (_) {
+        return Padding(
+
+          padding:
+          const EdgeInsets.all(24),
+
+          child: Column(
+
+            mainAxisSize:
+            MainAxisSize.min,
+
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
+
             children: [
-              Expanded(
-                child: Column(
-                  children: [
-                    Container(
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: done ? AppColors.primary : AppColors.divider,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      steps[i],
-                      style: TextStyle(
-                        fontSize: 8.5,
-                        color: done ? AppColors.primary : AppColors.textLight,
-                        fontFamily: 'Poppins',
-                        fontWeight:
-                        done ? FontWeight.w600 : FontWeight.w400,
-                      ),
-                    ),
-                  ],
+
+              const Text(
+
+                'Additional Documents Required',
+
+                style: TextStyle(
+
+                  fontSize: 18,
+
+                  fontWeight:
+                  FontWeight.bold,
+
+                  fontFamily:
+                  'Poppins',
                 ),
               ),
-              if (i < steps.length - 1) const SizedBox(width: 3),
+
+              const SizedBox(height: 12),
+
+              Text(
+                filing['latest_admin_message'],
+              ),
+
+              const SizedBox(height: 24),
+
+              // ======================================
+              // FILE PICKER
+              // ======================================
+              SizedBox(
+
+                width: double.infinity,
+
+                child:
+                ElevatedButton.icon(
+
+                  onPressed: () async {
+                    final success =
+                    await DocumentService
+                        .pickAndUploadDocument(
+
+                      filingId:
+                      filing['id'],
+
+                      documentType:
+                      "Additional Document",
+                    );
+
+                    Navigator.pop(context);
+
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(
+
+                      SnackBar(
+
+                        content: Text(
+
+                          success
+                              ? "Document uploaded successfully"
+                              : "Upload cancelled",
+                        ),
+                      ),
+                    );
+                  },
+
+                  icon: const Icon(
+                    Icons.upload_file_rounded,
+                  ),
+
+                  label: const Text(
+                    'Upload From Files',
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              // ======================================
+              // CAMERA
+              // ======================================
+              SizedBox(
+
+                width: double.infinity,
+
+                child:
+                OutlinedButton.icon(
+
+                  onPressed: () async {
+                    final success =
+                    await DocumentService
+                        .captureAndUploadDocument(
+
+                      filingId:
+                      filing['id'],
+
+                      documentType:
+                      "Additional Document",
+                    );
+
+                    Navigator.pop(context);
+
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(
+
+                      SnackBar(
+
+                        content: Text(
+
+                          success
+                              ? "Document scanned and uploaded"
+                              : "Camera upload cancelled",
+                        ),
+                      ),
+                    );
+                  },
+
+                  icon: const Icon(
+                    Icons.camera_alt_rounded,
+                  ),
+
+                  label: const Text(
+                    'Scan Using Camera',
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
             ],
           ),
         );
-      }),
-    );
-  }
-}
-
-// ── Upload Sheet Option ────────────────────────────────────────────────────
-class _SheetOption extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _SheetOption(
-      {required this.icon, required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.divider),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: AppColors.primary, size: 20),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: const TextStyle(
-                  color: AppColors.textDark,
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13),
-            ),
-          ],
-        ),
-      ),
+      },
     );
   }
 }

@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import '../theme/app_theme.dart';
 
 import 'main_navigation_screen.dart';
+import '../config/api_config.dart';
 
 class CompleteProfileScreen
     extends StatefulWidget {
@@ -70,7 +71,7 @@ class _CompleteProfileScreenState
 
       await Dio().post(
 
-        'http://10.79.198.214:5000/customers/update-phone',
+        '${ApiConfig.baseUrl}/customers/update-phone',
 
         data: {
           "phone": phone,

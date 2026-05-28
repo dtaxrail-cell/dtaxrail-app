@@ -1,10 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../config/api_config.dart';
 
 class MemberService {
-
-  static const String baseUrl =
-      "http://10.79.198.214:5000";
 
   static final Dio _dio = Dio();
 
@@ -46,7 +44,7 @@ class MemberService {
       final response =
       await _dio.post(
 
-        "$baseUrl/members/create",
+        "${ApiConfig.baseUrl}/members/create",
 
         data: {
 
@@ -94,7 +92,7 @@ class MemberService {
       final response =
       await _dio.get(
 
-        "$baseUrl/members",
+        "${ApiConfig.baseUrl}/members",
 
         options: Options(
 
@@ -140,7 +138,7 @@ class MemberService {
 
       await _dio.put(
 
-        "$baseUrl/members/update/$memberId",
+        "${ApiConfig.baseUrl}/members/update/$memberId",
 
         data: {
 
@@ -189,7 +187,7 @@ class MemberService {
 
       await _dio.delete(
 
-        "$baseUrl/members/delete/$memberId",
+        "${ApiConfig.baseUrl}/members/delete/$memberId",
 
         options: Options(
 

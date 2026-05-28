@@ -1,82 +1,245 @@
-import 'package:dio/dio.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
+import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
+import '../config/api_config.dart';
 class DocumentService {
 
-  static const String baseUrl =
-      "http://10.79.198.214:5000";
 
-  static final Dio _dio = Dio();
+static final Dio _dio = Dio();
 
-  static Future<Map<String, dynamic>?> uploadDocumentDirect({
+// ==========================================
+// PICK + UPLOAD DOCUMENT
+// ==========================================
+static Future<bool> pickAndUploadDocument({
 
-    required String filingId,
-    required String documentType,
-    required String filePath,
-    required String fileName,
+required String filingId,
+required String documentType,
 
-    ProgressCallback? onSendProgress,
+}) async {
 
-  }) async {
+try {
 
-    try {
+final result =
+await FilePicker.pickFiles(
+type: FileType.any,
+);
 
-      final user =
-          FirebaseAuth.instance.currentUser;
+if (result == null) {
+return false;
+}
 
-      if (user == null) {
+final file =
+result.files.single;
 
-        print("No logged in user");
+final user =
+FirebaseAuth.instance.currentUser;
 
-        return null;
-      }
+if (user == null) {
+return false;
+}
 
-      final token =
-      await user.getIdToken();
+final token =
+await user.getIdToken();
 
-      FormData formData =
-      FormData.fromMap({
+FormData formData =
+FormData.fromMap({
 
-        "document":
-        await MultipartFile.fromFile(
+"document":
+await MultipartFile.fromFile(
 
-          filePath,
-          filename: fileName,
-        ),
+file.path!,
 
-        "filing_id": filingId,
+filename:
+file.name,
+),
 
-        "document_type": documentType,
-      });
+"filing_id":
+filingId,
 
-      final response =
-      await _dio.post(
+"document_type":
+documentType,
+});
 
-        "$baseUrl/documents/upload",
+await _dio.post(
 
-        data: formData,
+  "${ApiConfig.baseUrl}/documents/upload",
 
-        onSendProgress: onSendProgress,
+data: formData,
 
-        options: Options(
+options: Options(
 
-          headers: {
+headers: {
 
-            "Authorization":
-            "Bearer $token",
-          },
-        ),
-      );
+"Authorization":
+"Bearer $token",
+},
+),
+);
 
-      print(response.data);
+return true;
 
-      return response.data;
+} catch (e) {
 
-    } catch (e) {
+print("Upload Error: $e");
 
-      print("Direct Upload Error: $e");
+return false;
+}
+}
 
-      return null;
-    }
-  }
+// ==========================================
+// CAMERA CAPTURE + UPLOAD
+// ==========================================
+static Future<bool> captureAndUploadDocument({
+
+required String filingId,
+required String documentType,
+
+}) async {
+
+try {
+
+final picker = ImagePicker();
+
+final image =
+await picker.pickImage(
+
+source: ImageSource.camera,
+
+imageQuality: 70,
+);
+
+if (image == null) {
+return false;
+}
+
+final user =
+FirebaseAuth.instance.currentUser;
+
+if (user == null) {
+return false;
+}
+
+final token =
+await user.getIdToken();
+
+FormData formData =
+FormData.fromMap({
+
+"document":
+await MultipartFile.fromFile(
+
+image.path,
+
+filename:
+"camera_document.jpg",
+),
+
+"filing_id":
+filingId,
+
+"document_type":
+documentType,
+});
+
+await _dio.post(
+
+  "${ApiConfig.baseUrl}/documents/upload",
+
+data: formData,
+
+options: Options(
+
+headers: {
+
+"Authorization":
+"Bearer $token",
+},
+),
+);
+
+return true;
+
+} catch (e) {
+
+print("Camera Upload Error: $e");
+
+return false;
+}
+}
+
+// ==========================================
+// DIRECT UPLOAD
+// ==========================================
+static Future<Map<String, dynamic>?> uploadDocumentDirect({
+
+required String filingId,
+required String documentType,
+required String filePath,
+required String fileName,
+
+ProgressCallback? onSendProgress,
+
+}) async {
+
+try {
+
+final user =
+FirebaseAuth.instance.currentUser;
+
+if (user == null) {
+return null;
+}
+
+final token =
+await user.getIdToken();
+
+FormData formData =
+FormData.fromMap({
+
+"document":
+await MultipartFile.fromFile(
+
+filePath,
+
+filename: fileName,
+),
+
+"filing_id":
+filingId,
+
+"document_type":
+documentType,
+});
+
+final response =
+await _dio.post(
+
+  "${ApiConfig.baseUrl}/documents/upload",
+
+data: formData,
+
+onSendProgress:
+onSendProgress,
+
+options: Options(
+
+headers: {
+
+"Authorization":
+"Bearer $token",
+},
+),
+);
+
+return response.data;
+
+} catch (e) {
+
+print("Direct Upload Error: $e");
+
+return null;
+}
+}
 }

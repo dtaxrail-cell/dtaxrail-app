@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:dio/dio.dart';
+import '../config/api_config.dart';
 
 class GoogleAuthService {
 
@@ -62,8 +63,7 @@ class GoogleAuthService {
       final dio = Dio();
 
       await dio.post(
-
-        'http://10.79.198.214:5000/auth/sync-customer',
+        '${ApiConfig.baseUrl}/auth/sync-customer',
 
         options: Options(
 
@@ -73,6 +73,7 @@ class GoogleAuthService {
             'Bearer $token',
           },
         ),
+
       );
 
       print(
