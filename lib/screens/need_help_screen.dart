@@ -293,13 +293,30 @@ class _NeedHelpScreenState extends State<NeedHelpScreen>
           if (_nameCtrl.text.trim().isEmpty ||
               _phoneCtrl.text.trim().isEmpty ||
               _issueCtrl.text.trim().isEmpty) {
+
             ScaffoldMessenger.of(context)
                 .showSnackBar(
               const SnackBar(
-                content:
-                Text('Fill all fields'),
+                content: Text(
+                  'Fill all fields',
+                ),
               ),
             );
+
+            return;
+          }
+
+          if (_phoneCtrl.text.trim().length != 10) {
+
+            ScaffoldMessenger.of(context)
+                .showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Mobile number must be 10 digits',
+                ),
+              ),
+            );
+
             return;
           }
 
