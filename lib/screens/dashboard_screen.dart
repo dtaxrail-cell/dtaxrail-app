@@ -8,6 +8,7 @@ import 'members_screen.dart';
 import 'my_returns_screen.dart';
 import 'need_help_screen.dart';
 import 'members_screen.dart';
+import 'filing_results_screen.dart';
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -395,6 +396,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                       ],
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    _WideCard(
+
+                      icon:
+                      Icons.file_present_rounded,
+
+                      title:
+                      'Filing Results',
+
+                      subtitle:
+                      'View completed filing reports and uploaded result documents',
+
+                      iconBg:
+                      const Color(0xFFE8F0FF),
+
+                      iconColor:
+                      AppColors.primary,
+
+                      onTap: () => Navigator.push(
+
+                        context,
+
+                        MaterialPageRoute(
+
+                          builder: (_) =>
+                          const FilingResultsScreen(),
+                        ),
+                      ),
                     ),
                   ],
                 ),

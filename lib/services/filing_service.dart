@@ -118,5 +118,49 @@ class FilingService {
 
       return [];
     }
+
   }
+  // ==========================================
+// GET CUSTOMER FILING RESULTS
+// ==========================================
+  static Future<List<dynamic>>
+  getCustomerFilingResults() async {
+
+    try {
+
+      final token =
+      await _getToken();
+
+      if (token == null) {
+        return [];
+      }
+
+      final response =
+      await _dio.get(
+
+        "${ApiConfig.baseUrl}/filings/customer/results",
+
+        options: Options(
+
+          headers: {
+
+            "Authorization":
+            "Bearer $token",
+
+          },
+        ),
+      );
+
+      return response.data["results"] ?? [];
+
+    } catch (e) {
+
+      print("Get Filing Results Error: $e");
+
+      return [];
+    }
+  }
+
+
 }
+
