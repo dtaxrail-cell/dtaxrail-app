@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common_widgets.dart';
 import '../services/callback_service.dart';
+import '../services/faq_service.dart';
 
 class NeedHelpScreen extends StatefulWidget {
   const NeedHelpScreen({super.key});
@@ -19,40 +20,34 @@ class _NeedHelpScreenState extends State<NeedHelpScreen>
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _issueCtrl = TextEditingController();
+  Future<void> _loadFaqs() async {
+
+    final data =
+    await FaqService.getFaqs();
+
+    setState(() {
+
+      _faqs = data;
+
+      _loadingFaqs = false;
+
+    });
+  }
 
   bool _submitted = false;
 
-  static const _faqs = [
-    (
-    'What is the deadline for filing ITR for FY 2024-25?',
-    'The last date to file income tax return (ITR) for FY 2024-25 (AY 2025-26) for non-audit cases is July 31, 2025.'
-    ),
-    (
-    'How do I check my refund status?',
-    'You can check your ITR refund status on the Income Tax e-filing portal at incometax.gov.in, or through the NSDL website using your PAN and assessment year.'
-    ),
-    (
-    'What documents do I need for ITR filing?',
-    'Typically you need Form 16 (from employer), bank statements, investment proofs (80C/80D), PAN card, and Aadhaar card. Our experts will guide you based on your profile.'
-    ),
-    (
-    'How long does it take to file my return?',
-    'Once we receive your documents, our team typically reviews and files within 24-48 working hours. You will receive updates at each step.'
-    ),
-    (
-    'Will you help if I receive an income tax notice?',
-    'Yes! We provide free resolution of income tax notices if your ITR was filed through us. Our experts will prepare and file responses on your behalf.'
-    ),
-    (
-    'What is the difference between old and new tax regime?',
-    'The old regime allows various deductions (80C, HRA, etc.) while the new regime offers lower slab rates but fewer deductions. Use our Tax Tools calculator to compare which is better for you.'
-    ),
-  ];
+  List<dynamic> _faqs = [];
+
+  bool _loadingFaqs = true;
 
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+
+    _tabCtrl =
+        TabController(length: 2, vsync: this);
+
+    _loadFaqs();
   }
 
   @override
@@ -97,12 +92,26 @@ class _NeedHelpScreenState extends State<NeedHelpScreen>
   }
 
   Widget _buildFaq() {
+
+    if (_loadingFaqs) {
+
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
       itemCount: _faqs.length,
       itemBuilder: (ctx, i) {
         final idx = i;
-        final (q, a) = _faqs[idx];
+        final faq = _faqs[idx];
+
+        final q =
+            faq['question'] ?? '';
+
+        final a =
+            faq['answer'] ?? '';
 
         final isOpen = _expandedFaq == idx;
 
