@@ -24,7 +24,6 @@ class StartFilingScreen extends StatefulWidget {
 class _StartFilingScreenState
     extends State<StartFilingScreen> {
 
-  final _notesCtrl = TextEditingController();
 
   bool _isLoading = false;
 
@@ -200,7 +199,7 @@ class _StartFilingScreenState
 
         assessmentYear: "2025-2026",
 
-        notes: _notesCtrl.text,
+        notes: "",
 
         memberId:
         widget.member["id"].toString(),
@@ -290,7 +289,6 @@ class _StartFilingScreenState
   @override
   void dispose() {
 
-    _notesCtrl.dispose();
 
     super.dispose();
   }
@@ -678,28 +676,6 @@ class _StartFilingScreenState
                     ),
                   ),
 
-                  const SizedBox(height: 22),
-
-                  _sectionCard(
-
-                    title:
-                    'Additional Notes',
-
-                    child: TextFormField(
-
-                      controller:
-                      _notesCtrl,
-
-                      maxLines: 4,
-
-                      decoration:
-                      const InputDecoration(
-
-                        hintText:
-                        'Freelancer income, crypto income, GST help, business filings, etc.',
-                      ),
-                    ),
-                  ),
 
                   const SizedBox(height: 30),
 
@@ -1035,54 +1011,80 @@ class _StartFilingScreenState
 
           const SizedBox(height: 18),
 
-          Row(
+          LayoutBuilder(
+            builder: (context, constraints) {
 
-            children: [
+              if (constraints.maxWidth < 340) {
 
-              Expanded(
+                return Column(
+                  children: [
 
-                child:
-                OutlinedButton.icon(
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _pickDocument(title),
+                        icon: const Icon(
+                          Icons.folder_open_rounded,
+                        ),
+                        label: const Text(
+                          'Choose File',
+                        ),
+                      ),
+                    ),
 
-                  onPressed:
-                      () => _pickDocument(title),
+                    const SizedBox(height: 10),
 
-                  icon:
-                  const Icon(
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _captureDocument(title),
+                        icon: const Icon(
+                          Icons.camera_alt_rounded,
+                        ),
+                        label: const Text(
+                          'Use Camera',
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }
 
-                    Icons.folder_open_rounded,
+              return Row(
+                children: [
+
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _pickDocument(title),
+                      icon: const Icon(
+                        Icons.folder_open_rounded,
+                      ),
+                      label: const FittedBox(
+                        child: Text(
+                          'Choose File',
+                        ),
+                      ),
+                    ),
                   ),
 
-                  label:
-                  const Text(
-                    'Choose File',
+                  const SizedBox(width: 12),
+
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _captureDocument(title),
+                      icon: const Icon(
+                        Icons.camera_alt_rounded,
+                      ),
+                      label: const FittedBox(
+                        child: Text(
+                          'Use Camera',
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-
-              const SizedBox(width: 12),
-
-              Expanded(
-
-                child:
-                ElevatedButton.icon(
-
-                  onPressed:
-                      () => _captureDocument(title),
-
-                  icon:
-                  const Icon(
-
-                    Icons.camera_alt_rounded,
-                  ),
-
-                  label:
-                  const Text(
-                    'Use Camera',
-                  ),
-                ),
-              ),
-            ],
+                ],
+              );
+            },
           ),
         ],
       ),

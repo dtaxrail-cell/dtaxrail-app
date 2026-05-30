@@ -9,77 +9,48 @@ import '../services/google_auth_service.dart';
 import 'main_navigation_screen.dart';
 import 'auth_screen.dart';
 import 'complete_profile_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../config/api_config.dart';
 
 class BiometricScreen extends StatefulWidget {
-
   const BiometricScreen({super.key});
 
   @override
-  State<BiometricScreen> createState() =>
-      _BiometricScreenState();
+  State<BiometricScreen> createState() => _BiometricScreenState();
 }
 
-class _BiometricScreenState
-    extends State<BiometricScreen> {
-
-  final LocalAuthentication auth =
-  LocalAuthentication();
-
+class _BiometricScreenState extends State<BiometricScreen> {
+  final LocalAuthentication auth = LocalAuthentication();
   bool loading = false;
 
   @override
   void initState() {
-
     super.initState();
-
     Future.delayed(
       const Duration(milliseconds: 500),
-
           () {
-
         authenticate();
       },
     );
   }
 
   Future<void> authenticate() async {
-
     try {
-
       setState(() {
         loading = true;
       });
 
-      final bool canAuthenticate =
-      await auth.canCheckBiometrics;
+      final bool canAuthenticate = await auth.canCheckBiometrics;
+      final bool isDeviceSupported = await auth.isDeviceSupported();
 
-      final bool isDeviceSupported =
-      await auth.isDeviceSupported();
-
-      if (
-      !canAuthenticate ||
-          !isDeviceSupported
-      ) {
-
-        print(
-          "Biometric not supported",
-        );
-
+      if (!canAuthenticate || !isDeviceSupported) {
+        print("Biometric not supported");
         return;
       }
 
-      bool authenticated =
-      await auth.authenticate(
-
-        localizedReason:
-        'Authenticate to access D Tax Rail',
-
+      bool authenticated = await auth.authenticate(
+        localizedReason: 'Authenticate to access D Tax Rail',
         options: const AuthenticationOptions(
-
           biometricOnly: true,
-
           stickyAuth: true,
         ),
       );
@@ -87,110 +58,73 @@ class _BiometricScreenState
       if (authenticated && mounted) {
         print("BIOMETRIC SUCCESS");
 
-        // GET FIREBASE TOKEN
-        final currentUser =
-            FirebaseAuth.instance.currentUser;
+        final currentUser = FirebaseAuth.instance.currentUser;
 
         if (currentUser == null) {
-
           print("USER NULL AFTER BIOMETRIC");
-
           if (!mounted) return;
-
           Navigator.pushReplacement(
-
             context,
-
-            MaterialPageRoute(
-              builder: (_) =>
-              const AuthScreen(),
-            ),
+            MaterialPageRoute(builder: (_) => const AuthScreen()),
           );
-
           return;
         }
 
-        final token =
-        await currentUser.getIdToken();
+        final token = await currentUser.getIdToken();
 
         print("CALLING ENABLE BIOMETRIC API");
 
-        // UPDATE BIOMETRIC STATUS IN BACKEND
         await Dio().post(
-
           '${ApiConfig.baseUrl}/auth/enable-biometric',
-
           options: Options(
             headers: {
-              'Authorization':
-              'Bearer $token',
+              'Authorization': 'Bearer $token',
             },
           ),
         );
+
         print("ENABLE BIOMETRIC API SUCCESS");
-        print(
-          "Biometric enabled in DB",
-        );
+        print("Biometric enabled in DB");
         print("FETCHING CUSTOMER");
-        // CHECK CUSTOMER PROFILE
+
         final response = await Dio().get(
-
           '${ApiConfig.baseUrl}/customers/me',
-
           options: Options(
-
             headers: {
-              'Authorization':
-              'Bearer $token',
+              'Authorization': 'Bearer $token',
             },
           ),
         );
-        print("CUSTOMER FETCHED");
-        final customer =
-        response.data['customer'];
 
-        final phone =
-        customer['phone'];
+        print("CUSTOMER FETCHED");
+
+        final customer = response.data['customer'];
+        final phone = customer['phone'];
 
         if (!mounted) return;
+
         print("GOING TO HOME");
-        if (
-        phone == null ||
-            phone.toString().isEmpty
-        ) {
 
+        if (phone == null || phone.toString().isEmpty) {
           Navigator.pushReplacement(
-
             context,
-
             MaterialPageRoute(
-              builder: (_) =>
-              const CompleteProfileScreen(),
+              builder: (_) => const CompleteProfileScreen(),
             ),
           );
-
         } else {
-
           Navigator.pushReplacement(
-
             context,
-
             MaterialPageRoute(
-              builder: (_) =>
-              const MainNavigationScreen(),
+              builder: (_) => const MainNavigationScreen(),
             ),
           );
         }
       }
-
     } catch (e) {
-
       print(e);
-
     } finally {
-
       if (mounted) {
-
         setState(() {
           loading = false;
         });
@@ -199,280 +133,167 @@ class _BiometricScreenState
   }
 
   Future<void> useAnotherAccount() async {
-
     await GoogleAuthService.logout();
-
     if (mounted) {
-
       Navigator.pushReplacement(
-
         context,
-
-        MaterialPageRoute(
-          builder: (_) =>
-          const AuthScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const AuthScreen()),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
-      backgroundColor:
-      AppColors.background,
-
+      backgroundColor: AppColors.background,
       body: SafeArea(
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 28,
+                vertical: 24,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 30),
 
-        child: Padding(
+                  Center(
+                    child: Container(
+                      width: 96,
+                      height: 96,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            AppColors.primary,
+                            AppColors.primaryDark,
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.20),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.fingerprint_rounded,
+                        color: Colors.white,
+                        size: 50,
+                      ),
+                    ),
+                  ),
 
-          padding:
-          const EdgeInsets.symmetric(
-            horizontal: 28,
-          ),
+                  const SizedBox(height: 34),
 
-          child: Column(
+                  const Center(
+                    child: Text(
+                      "Welcome Back",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 34,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                  ),
 
-            crossAxisAlignment:
-            CrossAxisAlignment.center,
+                  const SizedBox(height: 12),
 
-            children: [
+                  const Center(
+                    child: Text(
+                      "Verifying your identity securely using biometrics.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: AppColors.textMid,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
 
-              const Spacer(),
+                  const SizedBox(height: 60),
 
-              Center(
-
-                child: Container(
-
-                  width: 96,
-                  height: 96,
-
-                  decoration: BoxDecoration(
-
-                    gradient:
-                    const LinearGradient(
-
-                      colors: [
-
-                        AppColors.primary,
-
-                        AppColors.primaryDark,
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primaryLight,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.10),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
                       ],
                     ),
-
-                    borderRadius:
-                    BorderRadius.circular(28),
-
-                    boxShadow: [
-
-                      BoxShadow(
-
-                        color:
-                        AppColors.primary
-                            .withOpacity(0.20),
-
-                        blurRadius: 20,
-
-                        offset:
-                        const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-
-                  child: const Icon(
-
-                    Icons.fingerprint_rounded,
-
-                    color: Colors.white,
-
-                    size: 50,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 34),
-
-              const Center(
-
-                child: Text(
-
-                  "Welcome Back",
-
-                  textAlign:
-                  TextAlign.center,
-
-                  style: TextStyle(
-
-                    fontSize: 34,
-
-                    fontWeight:
-                    FontWeight.w700,
-
-                    color:
-                    AppColors.textDark,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              const Center(
-
-                child: Text(
-
-                  "Verifying your identity securely using biometrics.",
-
-                  textAlign:
-                  TextAlign.center,
-
-                  style: TextStyle(
-
-                    fontSize: 15,
-
-                    color:
-                    AppColors.textMid,
-
-                    height: 1.5,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 60),
-
-              Container(
-
-                width: 120,
-                height: 120,
-
-                decoration: BoxDecoration(
-
-                  shape: BoxShape.circle,
-
-                  color:
-                  AppColors.primaryLight,
-
-                  boxShadow: [
-
-                    BoxShadow(
-
-                      color:
-                      AppColors.primary
-                          .withOpacity(0.10),
-
-                      blurRadius: 20,
-
-                      offset:
-                      const Offset(0, 8),
-                    ),
-                  ],
-                ),
-
-                child: loading
-
-                    ? const Center(
-                  child:
-                  CircularProgressIndicator(),
-                )
-
-                    : const Icon(
-
-                  Icons
-                      .fingerprint_rounded,
-
-                  size: 60,
-
-                  color:
-                  AppColors.primary,
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              Center(
-
-                child: Container(
-
-                  padding:
-                  const EdgeInsets.symmetric(
-
-                    horizontal: 16,
-
-                    vertical: 11,
-                  ),
-
-                  decoration: BoxDecoration(
-
-                    color:
-                    AppColors.accentLight,
-
-                    borderRadius:
-                    BorderRadius.circular(
-                      30,
+                    child: loading
+                        ? const Center(child: CircularProgressIndicator())
+                        : const Icon(
+                      Icons.fingerprint_rounded,
+                      size: 60,
+                      color: AppColors.primary,
                     ),
                   ),
 
-                  child: Row(
+                  const SizedBox(height: 24),
 
-                    mainAxisSize:
-                    MainAxisSize.min,
-
-                    children: const [
-
-                      Icon(
-
-                        Icons
-                            .verified_user_rounded,
-
-                        color:
-                        AppColors.accent,
-
-                        size: 18,
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 11,
                       ),
-
-                      SizedBox(width: 8),
-
-                      Text(
-
-                        "This device is trusted",
-
-                        style: TextStyle(
-
-                          color:
-                          AppColors.accent,
-
-                          fontWeight:
-                          FontWeight.w600,
-                        ),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentLight,
+                        borderRadius: BorderRadius.circular(30),
                       ),
-                    ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(
+                            Icons.verified_user_rounded,
+                            color: AppColors.accent,
+                            size: 18,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            "This device is trusted",
+                            style: TextStyle(
+                              color: AppColors.accent,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-              ),
 
-              const Spacer(),
+                  const SizedBox(height: 40),
 
-              TextButton(
-
-                onPressed: useAnotherAccount,
-
-                child: const Text(
-
-                  "Use another account",
-
-                  style: TextStyle(
-
-                    fontSize: 15,
-
-                    fontWeight:
-                    FontWeight.w600,
+                  TextButton(
+                    onPressed: useAnotherAccount,
+                    child: const Text(
+                      "Use another account",
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 24),
-            ],
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
           ),
         ),
       ),
