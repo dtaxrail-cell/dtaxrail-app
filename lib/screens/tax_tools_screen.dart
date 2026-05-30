@@ -1,499 +1,943 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:dio/dio.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common_widgets.dart';
+import '../config/api_config.dart';
 
-class TaxToolsScreen extends StatefulWidget {
-  const TaxToolsScreen({super.key});
+// ─────────────────────────────────────────────────────────────────────────────
+// TaxCalculatorScreen
+// Replaces the old TaxToolsScreen entirely. No tabs. Single scrollable screen.
+// ─────────────────────────────────────────────────────────────────────────────
+class TaxCalculatorScreen extends StatefulWidget {
+  const TaxCalculatorScreen({super.key});
 
   @override
-  State<TaxToolsScreen> createState() => _TaxToolsScreenState();
+  State<TaxCalculatorScreen> createState() => _TaxCalculatorScreenState();
 }
 
-class _TaxToolsScreenState extends State<TaxToolsScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabCtrl;
+class _TaxCalculatorScreenState extends State<TaxCalculatorScreen> {
+  // ── Config loaded from backend ────────────────────────────────────────────
+  bool _configLoading = true;
+  Map<String, dynamic>? _config; // full metadata for selected year
 
+  // ── User inputs ───────────────────────────────────────────────────────────
+  String _selectedYear = '2026-27';
+  String _filingPersona = 'salaried'; // salaried | freelancer | business
+  String _ageCategory = 'general';   // general | senior | super_senior
+
+  double _grossIncome = 0;
+  double _exemptedAllowances = 0;
+  double _deductions = 0;
+  double _npsContribution = 0;
+  double _tdsPaid = 0;
+
+  // Text controllers — kept in sync with sliders
   final _incomeCtrl = TextEditingController();
-  final _deductionCtrl = TextEditingController();
-  double _oldTax = 0, _newTax = 0;
-  bool _calculated = false;
+  final _allowancesCtrl = TextEditingController();
+  final _deductionsCtrl = TextEditingController();
+  final _npsCtrl = TextEditingController();
+  final _tdsCtrl = TextEditingController();
+
+  // ── Result state ──────────────────────────────────────────────────────────
+  bool _calculating = false;
+  bool _hasResult = false;
+  Map<String, dynamic>? _result;
+
+  // ── Slider maxima (from config, fallback defaults) ────────────────────────
+  double get _incomeMax => _cfg('incomeMax', 5000000);
+  double get _allowancesMax => _cfg('allowancesMax', 3000000);
+  double get _deductionsMax => _cfg('deductionsMax', 3000000);
+  double get _npsMax => _cfg('npsMax', 1000000);
+  double get _tdsMax => _cfg('tdsMax', 2500000);
+
+  double _cfg(String key, double fallback) {
+    if (_config == null) return fallback;
+    final limits = _config!['sliderLimits'];
+    if (limits == null) return fallback;
+    return (limits[key] as num?)?.toDouble() ?? fallback;
+  }
 
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 3, vsync: this);
+    _loadConfig(_selectedYear);
   }
 
   @override
   void dispose() {
-    _tabCtrl.dispose();
     _incomeCtrl.dispose();
-    _deductionCtrl.dispose();
+    _allowancesCtrl.dispose();
+    _deductionsCtrl.dispose();
+    _npsCtrl.dispose();
+    _tdsCtrl.dispose();
     super.dispose();
   }
 
-  void _calculate() {
-    final income = double.tryParse(_incomeCtrl.text.replaceAll(',', '')) ?? 0;
-    final deductions =
-        double.tryParse(_deductionCtrl.text.replaceAll(',', '')) ?? 0;
+  // ── Load config for selected year ─────────────────────────────────────────
+  Future<void> _loadConfig(String year) async {
+    setState(() => _configLoading = true);
+    try {
+      final res = await Dio().get(
+        '${ApiConfig.baseUrl}/tax-tools/config/${Uri.encodeComponent(year)}',
+      );
+      setState(() {
+        _config = Map<String, dynamic>.from(res.data['config'] ?? {});
+        _configLoading = false;
+      });
+    } catch (e) {
+      debugPrint('TaxCalculator config load error: $e');
+      setState(() => _configLoading = false);
+    }
+  }
+
+  // ── Call calculate API ────────────────────────────────────────────────────
+  Future<void> _calculate() async {
     setState(() {
-      _oldTax = _calcOld(income, deductions);
-      _newTax = _calcNew(income);
-      _calculated = true;
+      _calculating = true;
+      _hasResult = false;
+      _result = null;
     });
-  }
-
-  double _calcOld(double income, double deductions) {
-    final taxable = (income - deductions).clamp(0.0, double.infinity);
-    double tax = 0;
-    if (taxable > 1000000) {
-      tax += (taxable - 1000000) * 0.30;
-      tax += 200000 * 0.20;
-      tax += 250000 * 0.10;
-    } else if (taxable > 750000) {
-      tax += (taxable - 750000) * 0.20;
-      tax += 250000 * 0.10;
-    } else if (taxable > 500000) {
-      tax += (taxable - 500000) * 0.10;
+    try {
+      final res = await Dio().post(
+        '${ApiConfig.baseUrl}/tax-tools/calculate',
+        data: {
+          'financialYear': _selectedYear,
+          'filingPersona': _filingPersona,
+          'ageCategory': _ageCategory,
+          'grossIncome': _grossIncome,
+          'exemptedAllowances': _exemptedAllowances,
+          'deductions': _deductions,
+          'npsContribution': _npsContribution,
+          'tdsPaid': _tdsPaid,
+        },
+      );
+      setState(() {
+        _result = Map<String, dynamic>.from(res.data['result'] ?? {});
+        _hasResult = true;
+        _calculating = false;
+      });
+    } catch (e) {
+      debugPrint('TaxCalculator calculate error: $e');
+      setState(() => _calculating = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Calculation failed. Please try again.')),
+        );
+      }
     }
-    return tax * 1.04;
   }
 
-  double _calcNew(double income) {
-    double tax = 0;
-    if (income > 1500000) {
-      tax += (income - 1500000) * 0.30;
-      tax += 300000 * 0.20;
-      tax += 300000 * 0.15;
-      tax += 300000 * 0.10;
-      tax += 300000 * 0.05;
-    } else if (income > 1200000) {
-      tax += (income - 1200000) * 0.20;
-      tax += 300000 * 0.15;
-      tax += 300000 * 0.10;
-      tax += 300000 * 0.05;
-    } else if (income > 900000) {
-      tax += (income - 900000) * 0.15;
-      tax += 300000 * 0.10;
-      tax += 300000 * 0.05;
-    } else if (income > 600000) {
-      tax += (income - 600000) * 0.10;
-      tax += 300000 * 0.05;
-    } else if (income > 300000) {
-      tax += (income - 300000) * 0.05;
+  // ── Sync slider → text controller ────────────────────────────────────────
+  void _syncCtrl(TextEditingController ctrl, double value) {
+    final text = value.toStringAsFixed(0);
+    if (ctrl.text != text) {
+      ctrl.value = ctrl.value.copyWith(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
     }
-    return tax * 1.04;
   }
 
+  // ── Parse text input → clamp to max ──────────────────────────────────────
+  double _parseCtrl(TextEditingController ctrl, double max) {
+    final v = double.tryParse(ctrl.text.replaceAll(',', '')) ?? 0;
+    return v.clamp(0, max);
+  }
+
+  // ── Formatting helpers ────────────────────────────────────────────────────
+  String _fmt(double v) {
+    if (v >= 10000000) return '₹${(v / 10000000).toStringAsFixed(1)} Cr';
+    if (v >= 100000) return '₹${(v / 100000).toStringAsFixed(1)} L';
+    if (v >= 1000) return '₹${(v / 1000).toStringAsFixed(0)}K';
+    return '₹${v.toStringAsFixed(0)}';
+  }
+
+  String _fmtFull(double v) =>
+      '₹${v.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{2})+\d$)'), (m) => '${m[1]},')}';
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // BUILD
+  // ─────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Tax Tools'),
-        bottom: TabBar(
-          controller: _tabCtrl,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textLight,
-          indicatorColor: AppColors.primary,
-          isScrollable: true,
-          labelStyle: const TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-              fontSize: 12.5),
-          tabs: const [
-            Tab(text: '🧮 Calculator'),
-            Tab(text: '📅 Deadlines'),
-            Tab(text: '⚖️ Regime Compare'),
+        title: const Text('Tax Calculator'),
+        elevation: 0,
+        backgroundColor: AppColors.background,
+      ),
+      body: _configLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── FY selector ──────────────────────────────────────────
+            _sectionLabel('Financial Year'),
+            const SizedBox(height: 8),
+            _fySelector(),
+            const SizedBox(height: 20),
+
+            // ── Filing Persona ───────────────────────────────────────
+            _sectionLabel('Filing Persona'),
+            const SizedBox(height: 8),
+            _personaSelector(),
+            const SizedBox(height: 20),
+
+            // ── Age Category ─────────────────────────────────────────
+            _sectionLabel('Age Category'),
+            const SizedBox(height: 8),
+            _ageSelector(),
+            const SizedBox(height: 24),
+
+            // ── Sliders ──────────────────────────────────────────────
+            _sliderInput(
+              label: 'Gross Annual Income',
+              value: _grossIncome,
+              max: _incomeMax,
+              ctrl: _incomeCtrl,
+              onChanged: (v) => setState(() {
+                _grossIncome = v;
+                _syncCtrl(_incomeCtrl, v);
+              }),
+              onCtrlSubmit: () => setState(() {
+                _grossIncome = _parseCtrl(_incomeCtrl, _incomeMax);
+                _syncCtrl(_incomeCtrl, _grossIncome);
+              }),
+              hint: 'Slide up to ${_fmt(_incomeMax)}',
+            ),
+            const SizedBox(height: 18),
+
+            _sliderInput(
+              label: 'Exempted Allowances',
+              value: _exemptedAllowances,
+              max: _allowancesMax,
+              ctrl: _allowancesCtrl,
+              onChanged: (v) => setState(() {
+                _exemptedAllowances = v;
+                _syncCtrl(_allowancesCtrl, v);
+              }),
+              onCtrlSubmit: () => setState(() {
+                _exemptedAllowances = _parseCtrl(_allowancesCtrl, _allowancesMax);
+                _syncCtrl(_allowancesCtrl, _exemptedAllowances);
+              }),
+              hint: 'Up to ${_fmt(_allowancesMax)}',
+            ),
+            const SizedBox(height: 18),
+
+            _sliderInput(
+              label: 'Deductions (excluding standard deduction and NPS contribution)',
+              value: _deductions,
+              max: _deductionsMax,
+              ctrl: _deductionsCtrl,
+              onChanged: (v) => setState(() {
+                _deductions = v;
+                _syncCtrl(_deductionsCtrl, v);
+              }),
+              onCtrlSubmit: () => setState(() {
+                _deductions = _parseCtrl(_deductionsCtrl, _deductionsMax);
+                _syncCtrl(_deductionsCtrl, _deductions);
+              }),
+              hint: 'Up to ${_fmt(_deductionsMax)}',
+            ),
+            const SizedBox(height: 18),
+
+            _sliderInput(
+              label: 'NPS Contribution (if any)',
+              value: _npsContribution,
+              max: _npsMax,
+              ctrl: _npsCtrl,
+              onChanged: (v) => setState(() {
+                _npsContribution = v;
+                _syncCtrl(_npsCtrl, v);
+              }),
+              onCtrlSubmit: () => setState(() {
+                _npsContribution = _parseCtrl(_npsCtrl, _npsMax);
+                _syncCtrl(_npsCtrl, _npsContribution);
+              }),
+              hint: 'Up to ${_fmt(_npsMax)}',
+              bold: true,
+            ),
+            const SizedBox(height: 18),
+
+            _sliderInput(
+              label: 'TDS / Tax Already Paid',
+              value: _tdsPaid,
+              max: _tdsMax,
+              ctrl: _tdsCtrl,
+              onChanged: (v) => setState(() {
+                _tdsPaid = v;
+                _syncCtrl(_tdsCtrl, v);
+              }),
+              onCtrlSubmit: () => setState(() {
+                _tdsPaid = _parseCtrl(_tdsCtrl, _tdsMax);
+                _syncCtrl(_tdsCtrl, _tdsPaid);
+              }),
+              hint: 'Up to ${_fmt(_tdsMax)}',
+            ),
+            const SizedBox(height: 28),
+
+            // ── Calculate button ─────────────────────────────────────
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _calculating ? null : _calculate,
+                icon: _calculating
+                    ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+                    : const Icon(Icons.calculate_rounded),
+                label: Text(_calculating ? 'Calculating…' : 'Calculate Tax'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  textStyle: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Results ──────────────────────────────────────────────
+            if (_hasResult && _result != null) ...[
+              const SizedBox(height: 28),
+              _buildResults(),
+            ],
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabCtrl,
-        children: [
-          _buildCalculator(),
-          _buildDeadlines(),
-          _buildRegimeCompare(),
-        ],
       ),
     );
   }
 
-  Widget _buildCalculator() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(22, 20, 22, 30),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SectionTitle('Tax Calculator'),
-          const SizedBox(height: 6),
-          const Text('Estimate your tax liability for FY 2024-25',
-              style: TextStyle(
-                  color: AppColors.textLight,
-                  fontSize: 13,
-                  fontFamily: 'Poppins')),
-          const SizedBox(height: 24),
-          TextFormField(
-            controller: _incomeCtrl,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(
-              labelText: 'Annual Income (₹)',
-              hintText: 'e.g. 1200000',
-              prefixIcon: Icon(Icons.currency_rupee_rounded,
-                  color: AppColors.primary),
-            ),
+  // ─────────────────────────────────────────────────────────────────────────
+  // RESULTS SECTION
+  // ─────────────────────────────────────────────────────────────────────────
+  Widget _buildResults() {
+    final newRegime = _result!['newRegime'] as Map<String, dynamic>;
+    final oldRegime = _result!['oldRegime'] as Map<String, dynamic>;
+    final savings = _result!['savings'] as Map<String, dynamic>;
+    final refund = _result!['refund'] as Map<String, dynamic>;
+    final cta = _result!['cta'] as String? ?? '';
+
+    final newTax = (newRegime['taxLiability'] as num).toDouble();
+    final oldTax = (oldRegime['taxLiability'] as num).toDouble();
+    final newNet = (newRegime['netIncome'] as num).toDouble();
+    final oldNet = (oldRegime['netIncome'] as num).toDouble();
+    final savingsAmt = (savings['amount'] as num).toDouble();
+    final savingsRegime = savings['regime'] as String;
+    final refundAmt = (refund['amount'] as num).toDouble();
+    final refundType = refund['type'] as String;
+
+    final isNewBetter = savingsRegime == 'new';
+
+    // Age label for old regime display
+    final ageLabel = _ageCategory == 'general'
+        ? 'Not a senior citizen'
+        : _ageCategory == 'senior'
+        ? 'Senior citizen (60–79)'
+        : 'Super senior citizen (80+)';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Net Income row ─────────────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF4CAF50).withOpacity(0.12),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.3)),
           ),
-          const SizedBox(height: 14),
-          TextFormField(
-            controller: _deductionCtrl,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(
-              labelText: 'Deductions under 80C, HRA etc. (₹)',
-              hintText: 'e.g. 150000',
-              prefixIcon: Icon(Icons.discount_outlined,
-                  color: AppColors.primary),
-            ),
-          ),
-          const SizedBox(height: 20),
-          PrimaryButton(
-              label: 'Calculate Tax',
-              onTap: _calculate,
-              icon: Icons.calculate_rounded),
-          if (_calculated) ...[
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: _TaxResultCard(
-                    label: 'Old Regime',
-                    amount: _oldTax,
-                    highlight: _oldTax < _newTax,
-                    highlightLabel: 'Better',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _TaxResultCard(
-                    label: 'New Regime',
-                    amount: _newTax,
-                    highlight: _newTax < _oldTax,
-                    highlightLabel: 'Better',
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            InfoCard(
-              child: Row(
+          child: Column(
+            children: [
+              Row(
                 children: [
-                  const Icon(Icons.lightbulb_outline_rounded,
-                      color: AppColors.primary, size: 18),
-                  const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      _oldTax < _newTax
-                          ? 'Old Regime saves you ₹${(_newTax - _oldTax).toStringAsFixed(0)} with your deductions.'
-                          : 'New Regime saves you ₹${(_oldTax - _newTax).toStringAsFixed(0)}. Consider fewer deduction claims.',
-                      style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textMid,
-                          fontFamily: 'Poppins',
-                          height: 1.5),
+                    child: _netIncomeChip(
+                      label: 'Net income under new',
+                      value: newNet,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _netIncomeChip(
+                      label: 'Net income under old',
+                      value: oldNet,
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
+              const SizedBox(height: 14),
 
-  Widget _buildDeadlines() {
-    // Using plain lists instead of record types
-    final dates = [
-      'July 31, 2025',
-      'Oct 31, 2025',
-      'Dec 31, 2025',
-      'Mar 15, 2025',
-      'Jun 15, 2025',
-    ];
-    final labels = [
-      'ITR filing deadline (non-audit)',
-      'ITR filing deadline (audit cases)',
-      'Belated/revised return deadline',
-      'Advance tax — 4th installment',
-      'Advance tax — 1st installment FY26',
-    ];
-    final isPastList = [false, false, false, true, false];
-
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
-      itemCount: dates.length,
-      itemBuilder: (ctx, i) {
-        final isPast = isPastList[i];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: isPast ? AppColors.surface : AppColors.cardBg,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-                color: isPast
-                    ? AppColors.divider
-                    : AppColors.primary.withValues(alpha: 0.2)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isPast ? AppColors.divider : AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Icons.event_rounded,
-                    color: isPast ? AppColors.textLight : AppColors.primary,
-                    size: 20),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(labels[i],
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: isPast ? AppColors.textLight : AppColors.textDark,
-                          fontFamily: 'Poppins',
-                        )),
-                    Text(dates[i],
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isPast ? AppColors.textLight : AppColors.primary,
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w500,
-                        )),
-                  ],
-                ),
-              ),
-              if (isPast)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.divider,
-                    borderRadius: BorderRadius.circular(8),
+              // ── Tax row ──────────────────────────────────────────────────
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // New regime tax
+                  Expanded(
+                    child: _taxChip(
+                      label: 'New regime',
+                      value: newTax,
+                      highlight: isNewBetter,
+                    ),
                   ),
-                  child: const Text('Past',
-                      style: TextStyle(
-                          fontSize: 10,
-                          color: AppColors.textLight,
-                          fontFamily: 'Poppins')),
+                  const SizedBox(width: 12),
+                  // Old regime tax — show only selected age
+                  Expanded(
+                    child: _taxChip(
+                      label: 'Old regime\n$ageLabel',
+                      value: oldTax,
+                      highlight: !isNewBetter,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // ── Savings message ──────────────────────────────────────────
+              if (savingsAmt > 0)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.lightbulb_outline_rounded,
+                          color: Color(0xFF2E7D32), size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'You save ${_fmtFull(savingsAmt)} under the '
+                              '${savingsRegime == 'new' ? 'New' : 'Old'} Regime',
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF2E7D32),
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
             ],
           ),
-        );
-      },
-    );
-  }
+        ),
 
-  Widget _buildRegimeCompare() {
-    final rowLabels = [
-      'Standard Deduction',
-      'Section 80C',
-      'HRA Exemption',
-      'Tax Rebate (87A)',
-      'Basic Exemption',
-      'NPS (80CCD)',
-    ];
-    final oldRegime = [
-      '₹50,000',
-      'Up to ₹1.5L',
-      'Available',
-      'Up to ₹5L income',
-      '₹2.5 lakh',
-      'Additional ₹50K',
-    ];
-    final newRegime = [
-      '₹75,000',
-      'Not available',
-      'Not available',
-      'Up to ₹7L income',
-      '₹3 lakh',
-      'Not available',
-    ];
+        const SizedBox(height: 14),
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 30),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primary, AppColors.primaryDark],
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Row(
-              children: [
-                Expanded(flex: 2, child: SizedBox()),
-                Expanded(
-                  flex: 3,
-                  child: Text('Old Regime',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontFamily: 'Poppins',
-                          fontSize: 13)),
+        // ── Estimated Refund / Payment ────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF4CAF50).withOpacity(0.12),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.3)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Estimated Refund / Payment',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  color: AppColors.textDark,
                 ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _refundChip(
+                      label: refundType == 'refund'
+                          ? 'Your Refund'
+                          : refundType == 'payable'
+                          ? 'Tax Payable'
+                          : 'Nil',
+                      value: refundAmt,
+                      isRefund: refundType == 'refund',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Show the TDS paid for reference
+                  Expanded(
+                    child: _refundChip(
+                      label: 'TDS Already Paid',
+                      value: _tdsPaid,
+                      isRefund: true,
+                      muted: true,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // ── CTA ───────────────────────────────────────────────────────────
+        if (cta.isNotEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.primary.withOpacity(0.25)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline_rounded,
+                    color: AppColors.primary, size: 20),
+                const SizedBox(width: 12),
                 Expanded(
-                  flex: 3,
-                  child: Text('New Regime',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontFamily: 'Poppins',
-                          fontSize: 13)),
+                  child: Text(
+                    cta,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.primary,
+                      height: 1.5,
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 8),
-          ...List.generate(rowLabels.length, (i) {
-            return Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SMALL WIDGET HELPERS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Widget _sectionLabel(String text) => Text(
+    text,
+    style: const TextStyle(
+      fontFamily: 'Poppins',
+      fontWeight: FontWeight.w600,
+      fontSize: 13.5,
+      color: AppColors.textDark,
+    ),
+  );
+
+  Widget _fySelector() {
+    return Row(
+      children: ['2025-26', '2026-27'].map((year) {
+        final selected = _selectedYear == year;
+        return Padding(
+          padding: const EdgeInsets.only(right: 10),
+          child: GestureDetector(
+            onTap: () {
+              if (_selectedYear != year) {
+                setState(() {
+                  _selectedYear = year;
+                  _hasResult = false;
+                  _result = null;
+                });
+                _loadConfig(year);
+              }
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
-                color: i.isEven ? AppColors.surface : AppColors.cardBg,
-                border: Border.all(color: AppColors.divider),
-                borderRadius: i == 0
-                    ? const BorderRadius.vertical(top: Radius.circular(10))
-                    : i == rowLabels.length - 1
-                    ? const BorderRadius.vertical(
-                    bottom: Radius.circular(10))
-                    : BorderRadius.zero,
+                color: selected ? AppColors.primary : AppColors.surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: selected ? AppColors.primary : AppColors.divider,
+                ),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Text(rowLabels[i],
-                        style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textDark,
-                            fontFamily: 'Poppins')),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: Text(oldRegime[i],
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textMid,
-                            fontFamily: 'Poppins')),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: Text(newRegime[i],
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textMid,
-                            fontFamily: 'Poppins')),
-                  ),
-                ],
-              ),
-            );
-          }),
-          const SizedBox(height: 16),
-          InfoCard(
-            child: const Text(
-              'Tip: If your total deductions exceed ₹3.75 lakh, Old Regime is likely better. Otherwise, opt for the New Regime.',
-              style: TextStyle(
-                  fontSize: 12.5,
-                  color: AppColors.textMid,
+              child: Text(
+                year,
+                style: TextStyle(
                   fontFamily: 'Poppins',
-                  height: 1.6),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: selected ? Colors.white : AppColors.textMid,
+                ),
+              ),
             ),
           ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _personaSelector() {
+    const options = [
+      ('salaried', 'Salaried'),
+      ('freelancer', 'Freelancer'),
+      ('business', 'Business'),
+    ];
+    return Wrap(
+      spacing: 10,
+      runSpacing: 8,
+      children: options.map((opt) {
+        final selected = _filingPersona == opt.$1;
+        return GestureDetector(
+          onTap: () => setState(() => _filingPersona = opt.$1),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+            decoration: BoxDecoration(
+              color: selected ? AppColors.primary : AppColors.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: selected ? AppColors.primary : AppColors.divider,
+              ),
+            ),
+            child: Text(
+              opt.$2,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+                fontSize: 12.5,
+                color: selected ? Colors.white : AppColors.textMid,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _ageSelector() {
+    const options = [
+      ('general', 'General (< 60)'),
+      ('senior', 'Senior (60–79)'),
+      ('super_senior', 'Super Senior (80+)'),
+    ];
+    return Column(
+      children: options.map((opt) {
+        final selected = _ageCategory == opt.$1;
+        return GestureDetector(
+          onTap: () => setState(() => _ageCategory = opt.$1),
+          child: Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+            decoration: BoxDecoration(
+              color: selected ? AppColors.primaryLight : AppColors.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: selected ? AppColors.primary : AppColors.divider,
+                width: selected ? 1.5 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: selected ? AppColors.primary : Colors.transparent,
+                    border: Border.all(
+                      color: selected ? AppColors.primary : AppColors.divider,
+                      width: 2,
+                    ),
+                  ),
+                  child: selected
+                      ? const Icon(Icons.check, size: 11, color: Colors.white)
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  opt.$2,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                    fontSize: 13,
+                    color: selected ? AppColors.primary : AppColors.textMid,
+                  ),
+                ),
+                if (opt.$1 == 'general') ...[
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'Default',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _sliderInput({
+    required String label,
+    required double value,
+    required double max,
+    required TextEditingController ctrl,
+    required ValueChanged<double> onChanged,
+    required VoidCallback onCtrlSubmit,
+    required String hint,
+    bool bold = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+                  fontSize: 13,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Manual input box
+            SizedBox(
+              width: 110,
+              child: TextField(
+                controller: ctrl,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: AppColors.textDark,
+                ),
+                decoration: InputDecoration(
+                  prefixText: '₹',
+                  prefixStyle: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: AppColors.primary,
+                  ),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: AppColors.divider),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: AppColors.primary),
+                  ),
+                ),
+                onSubmitted: (_) => onCtrlSubmit(),
+                onEditingComplete: onCtrlSubmit,
+              ),
+            ),
+          ],
+        ),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: AppColors.primary,
+            inactiveTrackColor: AppColors.primaryLight,
+            thumbColor: AppColors.primary,
+            overlayColor: AppColors.primary.withOpacity(0.12),
+            trackHeight: 4,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+          ),
+          child: Slider(
+            value: value.clamp(0, max),
+            min: 0,
+            max: max,
+            divisions: 200,
+            onChanged: onChanged,
+          ),
+        ),
+        Text(
+          hint,
+          style: const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 10.5,
+            color: AppColors.textLight,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _netIncomeChip({required String label, required double value}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 11,
+            color: Color(0xFF2E7D32),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          _fmtFull(value),
+          style: const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1B5E20),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _taxChip({
+    required String label,
+    required double value,
+    required bool highlight,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: highlight
+            ? Colors.white.withOpacity(0.7)
+            : Colors.white.withOpacity(0.35),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: highlight
+              ? const Color(0xFF2E7D32)
+              : Colors.transparent,
+          width: highlight ? 1.5 : 0,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 10.5,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF388E3C),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _fmtFull(value),
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: highlight
+                  ? const Color(0xFF1B5E20)
+                  : const Color(0xFF2E7D32),
+            ),
+          ),
+          if (highlight)
+            Container(
+              margin: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2E7D32),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'Better for you',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
-}
 
-class _TaxResultCard extends StatelessWidget {
-  final String label;
-  final double amount;
-  final bool highlight;
-  final String highlightLabel;
-
-  const _TaxResultCard({
-    required this.label,
-    required this.amount,
-    required this.highlight,
-    required this.highlightLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _refundChip({
+    required String label,
+    required double value,
+    required bool isRefund,
+    bool muted = false,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: highlight
-            ? AppColors.accent.withValues(alpha: 0.1)
-            : AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-            color: highlight ? AppColors.accent : AppColors.divider,
-            width: highlight ? 1.5 : 1),
+        color: muted
+            ? Colors.white.withOpacity(0.35)
+            : Colors.white.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (highlight)
-            Container(
-              margin: const EdgeInsets.only(bottom: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: AppColors.accent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(highlightLabel,
-                  style: const TextStyle(
-                      fontSize: 10,
-                      color: Colors.white,
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600)),
-            ),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textMid,
-                  fontFamily: 'Poppins')),
-          const SizedBox(height: 6),
           Text(
-            '₹${amount.toStringAsFixed(0)}',
+            label,
             style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: highlight ? AppColors.accent : AppColors.textDark,
               fontFamily: 'Poppins',
+              fontSize: 10.5,
+              color: muted
+                  ? const Color(0xFF388E3C)
+                  : const Color(0xFF2E7D32),
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const Text('per year',
-              style: TextStyle(
-                  fontSize: 10,
-                  color: AppColors.textLight,
-                  fontFamily: 'Poppins')),
+          const SizedBox(height: 4),
+          Text(
+            _fmtFull(value),
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: muted
+                  ? const Color(0xFF388E3C)
+                  : const Color(0xFF1B5E20),
+            ),
+          ),
         ],
       ),
     );
