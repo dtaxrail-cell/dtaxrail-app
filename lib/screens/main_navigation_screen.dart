@@ -19,7 +19,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   final List<Widget> _screens = [
     const DashboardScreen(),
-    const TaxCalculatorScreen(),
+    const TaxToolsScreen(),      // ✅ fixed: was TaxCalculatorScreen
     const MoreScreen(),
   ];
 
@@ -36,7 +36,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04), // ✅ fixed
               blurRadius: 12,
               offset: const Offset(0, -3),
             ),
@@ -92,10 +92,11 @@ class _NavItem extends StatelessWidget {
         children: [
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
             decoration: BoxDecoration(
               color: active
-                  ? AppColors.primary.withOpacity(0.12)
+                  ? AppColors.primary.withValues(alpha: 0.12) // ✅ fixed
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(20),
             ),

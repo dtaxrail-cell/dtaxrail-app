@@ -234,6 +234,142 @@ class _NeedHelpScreenState extends State<NeedHelpScreen>
     child: Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
+
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.divider,
+          ),
+        ),
+
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+
+          children: [
+
+            const Text(
+              "Contact Us Directly",
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textDark,
+                fontFamily: 'Poppins',
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            Row(
+              children: [
+
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.phone_rounded,
+                    color: AppColors.primary,
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                    CrossAxisAlignment.start,
+
+                    children: [
+
+                      Text(
+                        "Phone",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textLight,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+
+                      SizedBox(height: 2),
+
+                      Text(
+                        "8187882772",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            Row(
+              children: [
+
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.email_rounded,
+                    color: AppColors.primary,
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                    CrossAxisAlignment.start,
+
+                    children: [
+
+                      Text(
+                        "Email",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textLight,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+
+                      SizedBox(height: 2),
+
+                      Text(
+                        "dtaxrail@gmail.com",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+
+      const SizedBox(height: 24),
     const SectionTitle('Request a Callback'),
 
     const SizedBox(height: 6),

@@ -81,15 +81,7 @@ class ContactSupportScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            _clickableTile(
-              icon: Icons.camera_alt_rounded,
-              title: "Instagram",
-              value: "@dtaxrail",
-              onTap: () => _openUrl(
-                "https://www.instagram.com/dtr_dtaxrail",
-              ),
-            ),
-
+// EMAIL
             _clickableTile(
               icon: Icons.email_rounded,
               title: "Email",
@@ -99,29 +91,7 @@ class ContactSupportScreen extends StatelessWidget {
               ),
             ),
 
-            _clickableTile(
-              icon: Icons.phone_rounded,
-              title: "Phone",
-              value: "8187882772",
-              onTap: () => _openUrl(
-                "tel:8187882772",
-              ),
-            ),
-
-            _infoTile(
-              Icons.location_on_rounded,
-              "Office Address",
-              "49-107, Manda Street, Bobbili\nVizianagaram, AP - 535558",
-            ),
-
-            _infoTile(
-              Icons.access_time_rounded,
-              "Office Hours",
-              "Monday - Saturday\n9:00 AM - 8:00 PM IST",
-            ),
-
-            const SizedBox(height: 20),
-
+// WHATSAPP
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(18),
@@ -132,9 +102,7 @@ class ContactSupportScreen extends StatelessWidget {
               ),
 
               child: Column(
-                crossAxisAlignment:
-                CrossAxisAlignment.start,
-
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
 
                   const Text(
@@ -170,8 +138,29 @@ class ContactSupportScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 14),
 
+// PHONE
+            _clickableTile(
+              icon: Icons.phone_rounded,
+              title: "Phone",
+              value: "8187882772",
+              onTap: () => _openUrl(
+                "tel:8187882772",
+              ),
+            ),
+
+// INSTAGRAM
+            _clickableTile(
+              icon: Icons.camera_alt_rounded,
+              title: "Instagram",
+              value: "@dtaxrail",
+              onTap: () => _openUrl(
+                "https://www.instagram.com/dtr_dtaxrail",
+              ),
+            ),
+
+// WEBSITE
             _clickableTile(
               icon: Icons.language_rounded,
               title: "Website",
@@ -179,6 +168,13 @@ class ContactSupportScreen extends StatelessWidget {
               onTap: () => _openUrl(
                 "https://www.dtaxrail.com",
               ),
+            ),
+
+// OFFICE ADDRESS
+            _infoTile(
+              Icons.location_on_rounded,
+              "Office Address",
+              "49-107, Manda Street, Bobbili\nVizianagaram, AP - 535558",
             ),
 
             const SizedBox(height: 30),

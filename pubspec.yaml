@@ -22,13 +22,57 @@ dependencies:
   url_launcher: ^6.3.0
   open_filex: ^4.5.0
   http: ^1.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_native_splash: ^2.4.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
 
   assets:
     - assets/images/tax_filing_banner.png
+    - assets/images/splash_logo.png
+
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/images/splash_logo.png
+  color_dark: "#FFFFFF"
+  image_dark: assets/images/splash_logo.png
+
+  # Set fill to false to respect safe-zone centering rather than edge-to-edge stretching
+  fill: false
+  android_gravity: center
+  ios_content_mode: scaleAspectFit
+
+  # For Android 12+: Ensures the splash icon layer uses the same logo and white theme
+  android_12:
+    color: "#FFFFFF"
+    image: assets/images/splash_logo.png
+    icon_background_color: "#FFFFFF"
+    color_dark: "#FFFFFF"
+    image_dark: assets/images/splash_logo.png
+    # Explicitly defines the smaller width for the Android 12 native startup splash window icon
+    splash_screen_icon_width: 160
+
+  # Forces dynamic scaling of the splash bitmap to ensure centered safe-zone fit on any screen dimension
+  android_bitmap_scale: true
+  web: false
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/splash_logo.png"
+
+  # Adaptive Icon Settings: Separates background color from the scaled icon layer
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/splash_logo.png"
+
+  # Forcibly scales the icon graphics DOWN relative to the circular viewport size.
+  # This makes the logo appear significantly smaller and guarantees no text is cut.
+  adaptive_icon_foreground_scale: 0.85
+  min_sdk_android: 21

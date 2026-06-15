@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
-
 import '../services/customer_service.dart';
 import '../services/google_auth_service.dart';
 import '../services/local_storage_service.dart';
@@ -9,6 +8,8 @@ import '../services/local_storage_service.dart';
 import 'auth_screen.dart';
 import 'about_dtr_screen.dart';
 import 'contact_support_screen.dart';
+import 'government_deadlines_screen.dart';
+import 'instagram_updates_screen.dart';
 
 class MoreScreen extends StatefulWidget {
   const MoreScreen({super.key});
@@ -31,8 +32,7 @@ class _MoreScreenState extends State<MoreScreen> {
   }
 
   Future<void> loadProfile() async {
-    final customer =
-    await CustomerService.getProfile();
+    final customer = await CustomerService.getProfile();
 
     if (!mounted) return;
 
@@ -51,39 +51,20 @@ class _MoreScreenState extends State<MoreScreen> {
   }
 
   Future<void> logout() async {
-    final confirm =
-    await showDialog<bool>(
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (_) {
         return AlertDialog(
-          title: const Text(
-            "Logout",
-          ),
-          content: const Text(
-            "Are you sure you want to logout?",
-          ),
+          title: const Text("Logout"),
+          content: const Text("Are you sure you want to logout?"),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(
-                  context,
-                  false,
-                );
-              },
-              child: const Text(
-                "Cancel",
-              ),
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Cancel"),
             ),
             ElevatedButton(
-              onPressed: () {
-                Navigator.pop(
-                  context,
-                  true,
-                );
-              },
-              child: const Text(
-                "Logout",
-              ),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("Logout"),
             ),
           ],
         );
@@ -99,10 +80,7 @@ class _MoreScreenState extends State<MoreScreen> {
 
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(
-        builder: (_) =>
-        const AuthScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const AuthScreen()),
           (route) => false,
     );
   }
@@ -110,139 +88,69 @@ class _MoreScreenState extends State<MoreScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-      AppColors.background,
-
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text(
-          "More",
-        ),
+        title: const Text("More"),
       ),
-
       body: _loading
-          ? const Center(
-        child:
-        CircularProgressIndicator(),
-      )
+          ? const Center(child: CircularProgressIndicator())
           : ListView(
-        padding:
-        const EdgeInsets.all(20),
-
+        padding: const EdgeInsets.all(20),
         children: [
           Container(
-            padding:
-            const EdgeInsets.all(18),
-
-            decoration:
-            BoxDecoration(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
               color: Colors.white,
-
-              borderRadius:
-              BorderRadius
-                  .circular(20),
-
+              borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black
-                      .withOpacity(
-                      0.05),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 14,
-                  offset:
-                  const Offset(
-                      0, 5),
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
-
             child: Row(
               children: [
                 CircleAvatar(
                   radius: 34,
-
-                  backgroundColor:
-                  AppColors
-                      .primaryLight,
-
+                  backgroundColor: AppColors.primaryLight,
                   child: Text(
-                    name.isNotEmpty
-                        ? name[0]
-                        .toUpperCase()
-                        : "U",
-
-                    style:
-                    const TextStyle(
+                    name.isNotEmpty ? name[0].toUpperCase() : "U",
+                    style: const TextStyle(
                       fontSize: 24,
-                      fontWeight:
-                      FontWeight
-                          .w700,
-                      color:
-                      AppColors
-                          .primary,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
-
-                const SizedBox(
-                  width: 16,
-                ),
-
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
-
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         name,
-
-                        style:
-                        const TextStyle(
-                          fontSize:
-                          18,
-                          fontWeight:
-                          FontWeight
-                              .w700,
-                          color:
-                          AppColors
-                              .textDark,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textDark,
                         ),
                       ),
-
-                      const SizedBox(
-                          height:
-                          3),
-
+                      const SizedBox(height: 3),
                       Text(
                         email,
-
-                        style:
-                        const TextStyle(
-                          fontSize:
-                          13,
-                          color:
-                          AppColors
-                              .textLight,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textLight,
                         ),
                       ),
-
-                      const SizedBox(
-                          height:
-                          2),
-
+                      const SizedBox(height: 2),
                       Text(
-                        phone
-                            .isEmpty
-                            ? "Phone not added"
-                            : phone,
-
-                        style:
-                        const TextStyle(
-                          fontSize:
-                          13,
-                          color:
-                          AppColors
-                              .textLight,
+                        phone.isEmpty ? "Phone not added" : phone,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textLight,
                         ),
                       ),
                     ],
@@ -251,66 +159,84 @@ class _MoreScreenState extends State<MoreScreen> {
               ],
             ),
           ),
-
-          const SizedBox(
-            height: 24,
-          ),
-
+          const SizedBox(height: 24),
           _MenuTile(
-            icon:
-            Icons.info_rounded,
-            title:
-            "About D Tax Rail",
+            icon: Icons.info_rounded,
+            title: "About D Tax Rail",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AboutDtrScreen()),
+              );
+            },
+          ),
+          _MenuTile(
+            icon: Icons.payments_rounded,
+            title: "Pricing and Processes",
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) =>
-                  const AboutDtrScreen(),
+                  builder: (_) => Scaffold(
+                    backgroundColor: AppColors.background,
+                    appBar: AppBar(
+                      title: const Text("Pricing and Processes"),
+                    ),
+                    body: const Center(
+                      child: Text(
+                        "Content placeholder — Add your matter here",
+                        style: TextStyle(color: AppColors.textLight),
+                      ),
+                    ),
+                  ),
                 ),
               );
             },
           ),
-
           _MenuTile(
-            icon: Icons
-                .support_agent_rounded,
-            title:
-            "Contact Support",
+            icon: Icons.support_agent_rounded,
+            title: "Contact Support",
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                  const ContactSupportScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const ContactSupportScreen()),
               );
             },
           ),
-
-          const SizedBox(
-            height: 8,
-          ),
-
           _MenuTile(
-            icon:
-            Icons.logout_rounded,
+            icon: Icons.calendar_month_rounded,
+            title: "Government Deadlines",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const GovernmentDeadlinesScreen()),
+              );
+            },
+          ),
+          _MenuTile(
+            icon: Icons.campaign_rounded,
+            title: "Latest Income Tax Updates",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const InstagramUpdatesScreen()),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          _MenuTile(
+            icon: Icons.logout_rounded,
             title: "Logout",
             danger: true,
             onTap: logout,
           ),
-
-          const SizedBox(
-            height: 30,
-          ),
-
+          const SizedBox(height: 30),
           const Center(
             child: Text(
               "D Tax Rail v1.0.0",
               style: TextStyle(
                 fontSize: 11,
-                color: AppColors
-                    .textLight,
+                color: AppColors.textLight,
               ),
             ),
           ),
@@ -336,80 +262,45 @@ class _MenuTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin:
-      const EdgeInsets.only(
-        bottom: 12,
-      ),
-
-      decoration:
-      BoxDecoration(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
         color: Colors.white,
-
-        borderRadius:
-        BorderRadius.circular(
-            14),
-
+        borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black
-                .withOpacity(0.03),
+            color: Colors.black.withOpacity(0.03),
             blurRadius: 8,
-            offset:
-            const Offset(0, 3),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-
       child: ListTile(
         leading: Container(
           width: 36,
           height: 36,
-
-          decoration:
-          BoxDecoration(
-            color: danger
-                ? Colors.red
-                .withOpacity(
-                0.08)
-                : AppColors
-                .primaryLight,
-
-            borderRadius:
-            BorderRadius
-                .circular(10),
+          decoration: BoxDecoration(
+            color: danger ? Colors.red.withOpacity(0.08) : AppColors.primaryLight,
+            borderRadius: BorderRadius.circular(10),
           ),
-
           child: Icon(
             icon,
-            color: danger
-                ? Colors.red
-                : AppColors.primary,
+            color: danger ? Colors.red : AppColors.primary,
             size: 18,
           ),
         ),
-
         title: Text(
           title,
-
           style: TextStyle(
-            fontWeight:
-            FontWeight.w600,
+            fontWeight: FontWeight.w600,
             fontSize: 14,
-            color: danger
-                ? Colors.red
-                : AppColors
-                .textDark,
+            color: danger ? Colors.red : AppColors.textDark,
           ),
         ),
-
         trailing: const Icon(
-          Icons
-              .arrow_forward_ios_rounded,
+          Icons.arrow_forward_ios_rounded,
           size: 14,
-          color:
-          AppColors.textLight,
+          color: AppColors.textLight,
         ),
-
         onTap: onTap,
       ),
     );
