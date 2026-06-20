@@ -142,50 +142,47 @@ class StatusBadge extends StatelessWidget {
   final String status;
   const StatusBadge(this.status, {super.key});
 
-  Color _getBgColor() {
-    switch (status) {
-      case 'Pending':
-        return AppColors.statusPending;
-      case 'Under Review': return AppColors.statusReview; case 'Documents Requested': return const Color(0xFFEDE9FE);
-      case 'Filed':
-        return AppColors.statusFiled;
-      case 'Completed':
-        return AppColors.statusDone;
-      default:
-        return AppColors.divider;
-    }
-  }
-
-  Color _getFgColor() {
-    switch (status) {
-      case 'Pending':
-        return const Color(0xFF7D4E00);
-      case 'Under Review': return const Color(0xFF1A4A7A); case 'Documents Requested': return const Color(0xFF6D28D9);
-      case 'Filed':
-        return const Color(0xFF7D1A1A);
-      case 'Completed':
-        return const Color(0xFF1A5C35);
-      default:
-        return AppColors.textMid;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    // Convert to lowercase to perform resilient string segment checking
+    final s = status.toLowerCase().trim();
+
+    Color bg = AppColors.divider;
+    Color fg = AppColors.textMid;
+
+    if (s.contains('pending')) {
+      bg = AppColors.statusPending.withValues(alpha: 0.18);
+      fg = const Color(0xFF7D4E00);
+    } else if (s.contains('review')) {
+      bg = AppColors.statusReview.withValues(alpha: 0.18);
+      fg = const Color(0xFF1A4A7A);
+    } else if (s.contains('request') || s.contains('document')) {
+      bg = const Color(0xFFEDE9FE);
+      fg = const Color(0xFF6D28D9);
+    } else if (s.contains('filed')) {
+      bg = AppColors.statusFiled.withValues(alpha: 0.18);
+      fg = const Color(0xFF7D1A1A);
+    } else if (s.contains('complete') || s.contains('paid') || s.contains('success')) {
+      bg = AppColors.statusDone.withValues(alpha: 0.18);
+      fg = const Color(0xFF1A5C35);
+    }
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: _getBgColor().withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(20),
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        status,
+        status, // ✅ Renders the uncapped string exactly as typed on the spreadsheet
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: _getFgColor(),
+          color: fg,
           fontFamily: 'Poppins',
         ),
+        maxLines: 3, // ✅ Permits wrapping if you type custom long notes
+        softWrap: true,
       ),
     );
   }

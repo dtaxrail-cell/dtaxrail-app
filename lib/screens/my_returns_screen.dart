@@ -16,7 +16,9 @@ String _currentAssessmentYear() {
 }
 
 bool _isPreviousYearFiling(dynamic f) {
-  final isCompleted  = (f['status'] ?? '') == 'Completed';
+  final statusStr    = (f['status'] ?? '').toString().trim().toLowerCase();
+  // ✅ FIXED: Using .contains to ensure custom notes containing "complete" are filtered correctly
+  final isCompleted  = statusStr.contains('complete');
   final ay           = f['assessment_year']?.toString() ?? '';
   if (!isCompleted || ay.isEmpty) return false;
   final currentStart = int.tryParse(_currentAssessmentYear().split('-').first) ?? 9999;
@@ -120,14 +122,17 @@ class _FilingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = filing['status'] ?? 'Pending';
+    final statusNormalized = status.toString().trim().toLowerCase();
+    final paymentStatus = (filing['payment_status'] ?? '').toString().trim().toLowerCase();
 
+    // ✅ FIXED: Prevents UI errors by safely capturing any manual notes with "request" in it
     final bool hasRequest =
         filing['latest_admin_message'] != null &&
             filing['latest_admin_message'].toString().trim().isNotEmpty &&
-            status == 'Documents Requested';
+            statusNormalized.contains('request');
 
-    final bool isCompleted = status == 'Completed';
-    final bool isPaid      = filing['payment_status'] == 'Paid';
+    final bool isPaid = paymentStatus == 'paid';
+    final bool hasPaymentNotes = paymentStatus.isNotEmpty;
 
     return Container(
       margin:     const EdgeInsets.only(bottom: 16),
@@ -194,23 +199,43 @@ class _FilingCard extends StatelessWidget {
           ),
 
           // ── Payment status ────────────────────────────────────────────────
-          if (isCompleted) ...[
+          if (hasPaymentNotes) ...[
             const SizedBox(height: 10),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  isPaid ? Icons.verified_rounded : Icons.cancel_rounded,
-                  color: isPaid ? Colors.green : Colors.red,
-                  size:  18,
+                Padding(
+                  padding: const EdgeInsets.only(top: 2.0),
+                  child: Icon(
+                    isPaid ? Icons.verified_rounded : Icons.info_rounded,
+                    color: isPaid ? Colors.green : Colors.orange,
+                    size:  16,
+                  ),
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  isPaid ? 'Payment Completed' : 'Payment Pending',
-                  style: TextStyle(
-                    color:      isPaid ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.w600,
-                    fontSize:   12,
-                    fontFamily: 'Poppins',
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isPaid ? 'Payment Complete' : 'Payment Status Info',
+                        style: TextStyle(
+                          color:      isPaid ? Colors.green : Colors.orange,
+                          fontWeight: FontWeight.w700,
+                          fontSize:   12,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        filing['payment_status'] ?? '',
+                        style: const TextStyle(
+                          color:      AppColors.textMid,
+                          fontSize:   12,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

@@ -28,12 +28,10 @@ class _StartFilingScreenState extends State<StartFilingScreen> {
   final List<Map<String, dynamic>> _uploadedDocs = [];
 
   // ─── Parse DOB from any format the backend returns ───────────────────────────
-  // Handles: "1990-03-01T00:00:00.000Z", "1990-03-01", "01-03-1990", "N/A", null
   String _parseDob(dynamic raw) {
     if (raw == null || raw.toString().trim().isEmpty) return "N/A";
     final s = raw.toString().trim();
 
-    // ISO timestamp: 1990-03-01T00:00:00.000Z
     if (s.contains('T')) {
       try {
         final dt = DateTime.parse(s).toLocal();
@@ -41,23 +39,21 @@ class _StartFilingScreenState extends State<StartFilingScreen> {
       } catch (_) {}
     }
 
-    // Already YYYY-MM-DD
     if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(s)) {
       final parts = s.split('-');
-      return "${parts[2]}-${parts[1]}-${parts[0]}"; // flip to DD-MM-YYYY for display
+      return "${parts[2]}-${parts[1]}-${parts[0]}";
     }
 
-    // Already DD-MM-YYYY — display as-is
     if (RegExp(r'^\d{2}-\d{2}-\d{4}$').hasMatch(s)) return s;
 
-    return s; // fallback: show whatever is there
+    return s;
   }
 
   // ─── Pick from storage ────────────────────────────────────────────────────────
-
   Future<void> _pickDocument(String documentType) async {
     setState(() => _isPickingFile = true);
     try {
+      // ✅ FIXED: Removed .platform to align with updated file_picker API
       final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
@@ -86,7 +82,6 @@ class _StartFilingScreenState extends State<StartFilingScreen> {
   }
 
   // ─── Capture from camera ──────────────────────────────────────────────────────
-
   Future<void> _captureDocument(String documentType) async {
     setState(() => _isPickingFile = true);
     try {
@@ -114,11 +109,9 @@ class _StartFilingScreenState extends State<StartFilingScreen> {
   }
 
   // ─── Delete queued doc ────────────────────────────────────────────────────────
-
   void _deleteDoc(int index) => setState(() => _uploadedDocs.removeAt(index));
 
   // ─── Submit ───────────────────────────────────────────────────────────────────
-
   Future<void> _submitFiling() async {
     if (_isLoading) return;
 
@@ -135,9 +128,10 @@ class _StartFilingScreenState extends State<StartFilingScreen> {
         _uploadProgress = 0;
       });
 
+      // Unified year alignment for backend routing: "2025-26"
       final filingResponse = await FilingService.createFiling(
         filingType    : "ITR Filing",
-        assessmentYear: "2025-2026",
+        assessmentYear: "2025-26",
         notes         : "",
         memberId      : widget.member["id"].toString(),
       );
@@ -188,10 +182,8 @@ class _StartFilingScreenState extends State<StartFilingScreen> {
   }
 
   // ─── Build ────────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
-    // Determine the password value or show N/A if empty/null
     final rawPassword = widget.member["income_tax_password"];
     final hasPassword = rawPassword != null && rawPassword.toString().trim().isNotEmpty;
     final displayPassword = hasPassword ? rawPassword.toString().trim() : "N/A";
@@ -218,7 +210,6 @@ class _StartFilingScreenState extends State<StartFilingScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
                       const Text(
                         'File Your Tax Return',
                         style: TextStyle(
@@ -248,22 +239,18 @@ class _StartFilingScreenState extends State<StartFilingScreen> {
                             const SizedBox(height: 14),
                             _memberTile(icon: Icons.people_alt_rounded,  label: 'Relationship', value: widget.member["relationship"] ?? "N/A"),
                             const SizedBox(height: 14),
-                            // ── DOB: parsed cleanly from ISO or any format ────
                             _memberTile(
                               icon : Icons.cake_rounded,
                               label: 'Date of Birth',
                               value: _parseDob(widget.member["date_of_birth"]),
                             ),
                             const SizedBox(height: 14),
-
-                            // ── Always Display Password Tile ─────────────────
                             _memberTile(
                               icon: Icons.lock_rounded,
                               label: 'Password (Income Tax Portal)',
                               value: !hasPassword
                                   ? 'N/A'
                                   : (_isPasswordObscured ? '••••••••' : displayPassword),
-                              // Only show the look/hide eye icon button if a password actually exists
                               trailing: hasPassword
                                   ? IconButton(
                                 padding: EdgeInsets.zero,
@@ -359,13 +346,11 @@ class _StartFilingScreenState extends State<StartFilingScreen> {
                                           ],
                                         ),
                                       ),
-                                      // Green tick after upload
                                       Icon(
                                         Icons.check_circle_rounded,
                                         color: uploaded ? Colors.green : AppColors.divider,
                                       ),
                                       const SizedBox(width: 6),
-                                      // Delete button
                                       GestureDetector(
                                         onTap: () => _deleteDoc(index),
                                         child: Container(
@@ -533,20 +518,17 @@ class _StartFilingScreenState extends State<StartFilingScreen> {
           ),
           const SizedBox(height: 18),
           LayoutBuilder(builder: (context, constraints) {
-            final chooseBtn = Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _pickDocument(title),
-                icon : const Icon(Icons.folder_open_rounded),
-                label: const FittedBox(child: Text('Choose File')),
-              ),
+            final chooseBtn = OutlinedButton.icon(
+              onPressed: () => _pickDocument(title),
+              icon : const Icon(Icons.folder_open_rounded),
+              label: const FittedBox(child: Text('Choose File')),
             );
-            final cameraBtn = Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => _captureDocument(title),
-                icon : const Icon(Icons.camera_alt_rounded),
-                label: const FittedBox(child: Text('Use Camera')),
-              ),
+            final cameraBtn = ElevatedButton.icon(
+              onPressed: () => _captureDocument(title),
+              icon : const Icon(Icons.camera_alt_rounded),
+              label: const FittedBox(child: Text('Use Camera')),
             );
+
             if (constraints.maxWidth < 340) {
               return Column(children: [
                 SizedBox(width: double.infinity, child: chooseBtn),
@@ -554,7 +536,11 @@ class _StartFilingScreenState extends State<StartFilingScreen> {
                 SizedBox(width: double.infinity, child: cameraBtn),
               ]);
             }
-            return Row(children: [chooseBtn, const SizedBox(width: 12), cameraBtn]);
+            return Row(children: [
+              Expanded(child: chooseBtn),
+              const SizedBox(width: 12),
+              Expanded(child: cameraBtn)
+            ]);
           }),
         ],
       ),

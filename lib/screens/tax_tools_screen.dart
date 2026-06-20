@@ -1219,8 +1219,17 @@ class _ITRCalculatorState extends State<_ITRCalculator> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. HRA EXEMPTION CALCULATOR — SCREEN
+// 2. HRA EXEMPTION CALCULATOR — UPDATED to match website logic
 // ─────────────────────────────────────────────────────────────────────────────
+//
+// Changes from previous version:
+// 1. Replaced flat city list with: Metro? Yes/No toggle + metro city dropdown
+//    (dropdown only shown when "Yes" is selected, matching the website)
+// 2. Exemption percentage updated: Metro 60% (was 50%), Non-Metro 50% (was 40%)
+// 3. Summary text and "X% of Basic+DA" label updated to reflect 60%/50%
+//
+// Drop this in place of the existing _HraCalculatorScreen + _HraCalculator
+// classes inside tax_tools_screen.dart
 
 class _HraCalculatorScreen extends StatelessWidget {
   const _HraCalculatorScreen();
@@ -1245,19 +1254,25 @@ class _HraCalculatorState extends State<_HraCalculator> {
   double _da = 0;
   double _hraReceived = 0;
   double _rentPaid = 0;
-  bool _isMetro = true;
 
-  static const _metroOptions = [
-    ('Delhi', true), ('Mumbai', true), ('Kolkata', true),
-    ('Chennai', true), ('Bangalore', false), ('Hyderabad', false),
-    ('Pune', false), ('Other', false),
+  // ✅ Matches website: explicit Yes/No metro toggle + metro-only dropdown
+  bool _liveInMetro = true;
+  String _selectedMetroCity = 'Delhi';
+
+  static const List<String> _metroCities = [
+    'Delhi', 'Mumbai', 'Kolkata', 'Chennai',
+    'Bangalore', 'Hyderabad', 'Pune', 'Ahmedabad',
   ];
-  String _selectedCity = 'Delhi';
+
+  bool get _isMetro => _liveInMetro;
 
   double get _totalSalary => _basicSalary + _da;
   double get _rentExcess =>
       (_rentPaid - 0.1 * _totalSalary).clamp(0, double.infinity);
-  double get _basicPct => (_isMetro ? 0.5 : 0.4) * _totalSalary;
+
+  // ✅ Updated percentages: Metro 60%, Non-Metro 50% (was 50%/40%)
+  double get _basicPct => (_isMetro ? 0.6 : 0.5) * _totalSalary;
+
   double get _exemption =>
       [_hraReceived, _rentExcess, _basicPct].reduce((a, b) => a < b ? a : b);
   double get _taxableHra =>
@@ -1303,61 +1318,140 @@ class _HraCalculatorState extends State<_HraCalculator> {
               onChange: (v) => setState(() => _rentPaid = v)),
           const SizedBox(height: 16),
 
-          // City picker
-          const Text('City of Residence',
+          // ✅ Metro? Yes/No toggle — matches website
+          const Text('Do you live in a Metro City?',
               style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textMid,
                   fontFamily: 'Poppins')),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _metroOptions.map((opt) {
-              final sel = _selectedCity == opt.$1;
-              return GestureDetector(
-                onTap: () => setState(() {
-                  _selectedCity = opt.$1;
-                  _isMetro = opt.$2;
-                }),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: sel
-                        ? AppColors.primary
-                        : AppColors.background,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: sel
-                            ? AppColors.primary
-                            : AppColors.divider),
+          Container(
+            width: 200,
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.divider),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _liveInMetro = true),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _liveInMetro ? Colors.white : Colors.transparent,
+                        borderRadius: BorderRadius.circular(9),
+                        boxShadow: _liveInMetro
+                            ? [
+                          BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 4)
+                        ]
+                            : [],
+                      ),
+                      child: Text('Yes',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: _liveInMetro
+                                  ? AppColors.primary
+                                  : AppColors.textMid,
+                              fontFamily: 'Poppins')),
+                    ),
                   ),
-                  child: Text(opt.$1,
-                      style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: sel ? Colors.white : AppColors.textMid,
-                          fontFamily: 'Poppins')),
                 ),
-              );
-            }).toList(),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _liveInMetro = false),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: !_liveInMetro ? Colors.white : Colors.transparent,
+                        borderRadius: BorderRadius.circular(9),
+                        boxShadow: !_liveInMetro
+                            ? [
+                          BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 4)
+                        ]
+                            : [],
+                      ),
+                      child: Text('No',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: !_liveInMetro
+                                  ? AppColors.primary
+                                  : AppColors.textMid,
+                              fontFamily: 'Poppins')),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 6),
+
+          // ✅ Metro city dropdown — only shown when "Yes" selected
+          if (_liveInMetro) ...[
+            const SizedBox(height: 14),
+            const Text('Select Metro City',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMid,
+                    fontFamily: 'Poppins')),
+            const SizedBox(height: 8),
+            Container(
+              width: 220,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.divider),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedMetroCity,
+                  isExpanded: true,
+                  icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                      size: 18, color: AppColors.textMid),
+                  style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textDark,
+                      fontFamily: 'Poppins'),
+                  items: _metroCities
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) setState(() => _selectedMetroCity = v);
+                  },
+                ),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 10),
           Row(children: [
             Container(
                 width: 8,
                 height: 8,
                 decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color:
-                    _isMetro ? Colors.green : Colors.orange)),
+                    color: _isMetro ? Colors.green : Colors.orange)),
             const SizedBox(width: 6),
             Text(
+              // ✅ Updated copy: 60% / 50%
                 _isMetro
-                    ? 'Metro City — 50% HRA limit applies'
-                    : 'Non-Metro City — 40% HRA limit applies',
+                    ? 'Metro City — 60% HRA limit applies'
+                    : 'Non-Metro City — 50% HRA limit applies',
                 style: const TextStyle(
                     fontSize: 10,
                     color: AppColors.textLight,
@@ -1402,11 +1496,12 @@ class _HraCalculatorState extends State<_HraCalculator> {
                         color: Color(0xFF1D4ED8),
                         fontFamily: 'Poppins')),
                 const SizedBox(height: 6),
+                // ✅ Updated copy: 60% / 50% (was 50% / 40%)
                 const Text(
                     'HRA exemption is the lowest of:\n'
                         '  1. Actual HRA received\n'
                         '  2. Rent paid minus 10% of Basic+DA\n'
-                        '  3. 50% (Metro) or 40% (Non-Metro) of Basic+DA',
+                        '  3. 60% (Metro) or 50% (Non-Metro) of Basic+DA',
                     style: TextStyle(
                         fontSize: 10,
                         color: AppColors.textMid,
@@ -1441,8 +1536,9 @@ class _HraCalculatorState extends State<_HraCalculator> {
                 Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      // ✅ Updated label: 60% / 50%
                       Text(
-                          '${_isMetro ? "50%" : "40%"} of Basic+DA',
+                          '${_isMetro ? "60%" : "50%"} of Basic+DA',
                           style: const TextStyle(
                               fontSize: 10, color: AppColors.textMid)),
                       Text(_fmtFull(_basicPct),
