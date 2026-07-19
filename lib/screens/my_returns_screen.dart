@@ -167,7 +167,7 @@ class _FilingCard extends StatelessWidget {
                   ),
                 ),
               ),
-              StatusBadge(status),
+              // StatusBadge removed from here
             ],
           ),
 
